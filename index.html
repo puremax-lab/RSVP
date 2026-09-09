@@ -53,6 +53,14 @@
 
   .rule{ width:60px; height:1px; background:var(--gold); opacity:.55; margin:22px auto; }
 
+  /* soft radial glow behind text blocks — no hard edge, fades from center outward */
+  .hero, .section, .details, .closing{ position:relative; }
+  .hero::before, .section::before, .details::before, .closing::before{
+    content:''; position:absolute; z-index:-1; pointer-events:none;
+    inset:-10% -20%;
+    background:radial-gradient(ellipse 62% 68% at 50% 45%, rgba(8,4,3,.62) 0%, rgba(8,4,3,.36) 38%, rgba(8,4,3,.14) 60%, transparent 78%);
+  }
+
   /* ---------- HERO ---------- */
   .hero{
     text-align:center;
@@ -273,7 +281,7 @@
     </div>
 
     <div class="intro-title">
-      <p class="eyebrow label">Le Retour — Christmas Party</p>
+      <p class="eyebrow label">Ho Ho Ho<br>Le Retour</p>
       <h2 class="wordmark">Christmas Party<span class="numeral">II</span></h2>
       <p class="tagline">Bigger. Better. Full of Christmas joy.</p>
       <button class="cta-btn" id="introContinue">Découvrir l'invitation</button>
@@ -290,7 +298,7 @@
       <text x="60" y="70" text-anchor="middle" font-family="Cormorant Garamond, serif" font-style="italic" font-size="28" fill="#e3c98a">K &amp; E</text>
     </svg>
 
-    <p class="eyebrow label">Le Retour — Christmas Party</p>
+    <p class="eyebrow label">Ho Ho Ho<br>Le Retour</p>
     <h1 class="wordmark">Christmas Party<span class="numeral">II</span></h1>
     <p class="tagline">Bigger. Better. Full of Christmas joy.</p>
 
@@ -302,8 +310,8 @@
 
   <section class="section story">
     <p class="section-title label">La suite</p>
-    <p>Vous l'attendiez… ou peut-être pas. Mais une chose est sûre : le Christmas Party revient pour une deuxième édition — et cette année, on voit les choses en grand.</p>
-    <p>Une soirée pour célébrer Noël ensemble : rire, partager un repas, profiter, créer de beaux souvenirs — et surtout, célébrer Celui qui est au cœur de cette saison.</p>
+    <p>Vous l'attendiez… ou peut-être pas. Mais une chose est sûre : le Christmas Party revient pour une deuxième édition, et cette année, on voit les choses en grand.</p>
+    <p>Une soirée pour célébrer Noël ensemble : rire, partager un repas, profiter, créer de beaux souvenirs, et surtout célébrer Celui qui est au cœur de cette saison.</p>
   </section>
 
   <section class="section">
@@ -319,7 +327,7 @@
     </div>
     <div class="detail">
       <p class="label">Où</p>
-      <p class="value">Lieu à venir — détails à suivre</p>
+      <p class="value">Lieu à venir</p>
     </div>
     <div class="detail">
       <p class="label">RSVP avant le</p>
@@ -503,10 +511,10 @@
 
   function waLink(r){
     var lines = [
-      'RSVP — Christmas Party II', '',
+      'RSVP : Christmas Party II', '',
       'Nom : ' + r.name,
       'Présence : ' + r.attending,
-      'Message : ' + (r.message || '—')
+      'Message : ' + (r.message || '/')
     ];
     return 'https://wa.me/32484282550?text=' + encodeURIComponent(lines.join('\n'));
   }

@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace organisateur — Christmas Party II</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Marcellus&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0504; --bg-1:#170907;
+    --gold:#b8934f; --gold-light:#e3c98a; --gold-dim:#7a6238;
+    --parchment:#efe3cd; --ink:#e6dac6; --ink-dim:#8f7c6a;
+    --line:rgba(184,147,79,.26);
+    --ok:#8fae87; --bad:#b97a7a;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:
+      radial-gradient(ellipse 110% 45% at 50% -10%, #3a0d13 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-0) 100%);
+    background-color:var(--bg-0);
+    color:var(--ink); font-family:'Cormorant Garamond', Georgia, serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2{font-family:'Cormorant Garamond', Georgia, serif; margin:0; font-weight:500;}
+  .label{font-family:'Marcellus', Georgia, serif; text-transform:uppercase; letter-spacing:.22em;}
+  button{font-family:inherit; cursor:pointer;}
+  input{font-family:inherit;}
+  .mono{font-family:'JetBrains Mono', ui-monospace, monospace;}
+
+  .wrap{max-width:980px; margin:0 auto; padding:52px 24px 90px;}
+  .rule{ width:56px; height:1px; background:var(--gold); opacity:.5; margin:20px auto; }
+
+  a.back{ color:var(--ink-dim); text-decoration:none; font-size:.8rem; font-style:italic; }
+  a.back:hover{ color:var(--gold-light); }
+
+  .gate{ max-width:380px; margin:16vh auto 0; text-align:center; }
+  .gate .rule{ margin:0 auto 22px; }
+  .gate h1{ font-size:1.7rem; color:var(--gold-light); }
+  .gate p{ color:var(--ink-dim); font-size:.9rem; margin-top:12px; line-height:1.55; font-style:italic; }
+  .gate input{
+    width:100%; margin-top:26px; background:transparent; border:none; border-bottom:1px solid var(--line);
+    padding:10px 2px; color:var(--parchment); font-size:1.1rem; text-align:center; letter-spacing:.08em;
+  }
+  .gate input:focus{ outline:none; border-color:var(--gold); }
+  .gate .err{ color:var(--bad); font-size:.82rem; margin-top:14px; min-height:1.2em; font-style:italic; }
+
+  .btn{
+    margin-top:22px; width:100%;
+    background:linear-gradient(180deg, rgba(184,147,79,.16), rgba(184,147,79,.05));
+    color:var(--gold-light); border:1px solid var(--gold); border-radius:2px;
+    padding:13px 26px; font-family:'Marcellus', serif; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase;
+    transition:background .2s ease;
+  }
+  .btn:hover{ background:linear-gradient(180deg, rgba(184,147,79,.26), rgba(184,147,79,.1)); }
+  .btn:disabled{ opacity:.5; }
+  .btn.small{ width:auto; margin-top:0; padding:9px 18px; }
+  .btn.ghost{ background:transparent; }
+
+  .dash{display:none;}
+  .dash.show{display:block;}
+
+  .dash-head{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:34px; }
+  .dash-head h1{ font-size:2rem; }
+  .dash-head .sub{ color:var(--ink-dim); font-size:.85rem; font-style:italic; margin-top:4px; }
+  .head-actions{ display:flex; gap:10px; }
+
+  .stats{ display:grid; grid-template-columns:repeat(2,1fr); margin-bottom:36px; }
+  @media (min-width:640px){ .stats{grid-template-columns:repeat(4,1fr);} }
+  .stat{ padding:18px 20px; border-top:1px solid var(--line); }
+  @media (min-width:640px){ .stat{ border-top:none; border-left:1px solid var(--line);} .stat:first-child{border-left:none;} }
+  .stat .n{ font-size:2.1rem; color:var(--gold-light); line-height:1; }
+  .stat .l{ font-size:.66rem; color:var(--ink-dim); margin-top:8px; font-family:'Marcellus'; text-transform:uppercase; letter-spacing:.16em; }
+
+  .toolbar{ margin-bottom:22px; }
+  .toolbar input[type=search]{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
+    padding:10px 2px; color:var(--parchment); font-size:1.05rem;
+  }
+  .toolbar input:focus{ outline:none; border-color:var(--gold); }
+
+  .table-wrap{ border-top:1px solid var(--line); overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; min-width:640px; }
+  th, td{ text-align:left; padding:13px 16px 13px 0; font-size:.92rem; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th{ font-family:'Marcellus'; text-transform:uppercase; letter-spacing:.1em; font-size:.64rem; color:var(--gold); cursor:pointer; font-weight:400; }
+  th:hover{ color:var(--gold-light); }
+  td.msg{ white-space:normal; max-width:260px; color:var(--ink-dim); font-style:italic; }
+  .status{ font-size:.85rem; }
+  .status.yes{ color:var(--ok); }
+  .status.no{ color:var(--bad); }
+
+  .empty{ text-align:center; padding:50px 20px; color:var(--ink-dim); font-style:italic; }
+  .foot-note{ margin-top:22px; font-size:.78rem; color:var(--ink-dim); text-align:center; font-style:italic; }
+</style>
+</head>
+<body>
+
+<script>
+  window.APPS_SCRIPT_URL = "COLLEZ_ICI_VOTRE_URL_APPS_SCRIPT";
+</script>
+
+<div class="wrap">
+  <p style="margin-bottom:30px;"><a class="back" href="index.html">← Retour à l'invitation</a></p>
+
+  <div class="gate" id="gate">
+    <div class="rule"></div>
+    <h1>Espace organisateur</h1>
+    <p>Entrez la clé admin définie dans votre script Google pour voir les confirmations en direct.</p>
+    <input type="password" id="keyInput" placeholder="Clé admin" autocomplete="off">
+    <button class="btn" id="unlockBtn">Déverrouiller</button>
+    <p class="err" id="gateErr"></p>
+  </div>
+
+  <div class="dash" id="dash">
+    <div class="dash-head">
+      <div>
+        <h1>Confirmations</h1>
+        <p class="sub">Christmas Party II — mis à jour en direct</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn ghost small" id="exportBtn">Exporter en CSV</button>
+        <button class="btn ghost small" id="refreshBtn">Rafraîchir</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Réponses</div></div>
+      <div class="stat"><div class="n" id="statYes">0</div><div class="l">Présent(e)s</div></div>
+      <div class="stat"><div class="n" id="statGuests">0</div><div class="l">Invités au total</div></div>
+      <div class="stat"><div class="n" id="statNo">0</div><div class="l">Absent(e)s</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Rechercher un nom...">
+    </div>
+
+    <div class="table-wrap">
+      <table id="table">
+        <thead>
+          <tr>
+            <th data-key="date">Date</th>
+            <th data-key="name">Nom</th>
+            <th data-key="attending">Présence</th>
+            <th data-key="guests">Invités</th>
+            <th data-key="message">Message</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <p class="empty" id="emptyMsg" style="display:none;">Aucune réponse pour l'instant.</p>
+    </div>
+
+    <p class="foot-note">Rafraîchissement automatique toutes les 30 secondes.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var gate = document.getElementById('gate');
+  var dash = document.getElementById('dash');
+  var keyInput = document.getElementById('keyInput');
+  var unlockBtn = document.getElementById('unlockBtn');
+  var gateErr = document.getElementById('gateErr');
+  var refreshBtn = document.getElementById('refreshBtn');
+  var exportBtn = document.getElementById('exportBtn');
+  var search = document.getElementById('search');
+  var tbody = document.getElementById('tbody');
+  var emptyMsg = document.getElementById('emptyMsg');
+
+  var adminKey = sessionStorage.getItem('cp2_admin_key') || '';
+  var rows = [];
+  var sortKey = 'date', sortDir = -1;
+  var pollTimer = null;
+
+  function configured(){
+    return window.APPS_SCRIPT_URL && window.APPS_SCRIPT_URL.indexOf('COLLEZ_ICI') === -1;
+  }
+
+  function fetchRows(key){
+    if(!configured()){
+      return Promise.reject(new Error('APPS_SCRIPT_URL non configurée — voir README.md'));
+    }
+    return fetch(window.APPS_SCRIPT_URL + '?key=' + encodeURIComponent(key))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.error) throw new Error('Clé incorrecte.');
+        return data;
+      });
+  }
+
+  function unlock(key){
+    gateErr.textContent = '';
+    unlockBtn.disabled = true;
+    unlockBtn.textContent = 'Vérification...';
+    fetchRows(key).then(function(data){
+      adminKey = key;
+      sessionStorage.setItem('cp2_admin_key', key);
+      rows = data;
+      gate.style.display = 'none';
+      dash.classList.add('show');
+      render();
+      startPolling();
+    }).catch(function(err){
+      gateErr.textContent = err.message || 'Erreur de connexion.';
+    }).finally(function(){
+      unlockBtn.disabled = false;
+      unlockBtn.textContent = 'Déverrouiller';
+    });
+  }
+
+  unlockBtn.addEventListener('click', function(){
+    if(keyInput.value.trim()) unlock(keyInput.value.trim());
+  });
+  keyInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && keyInput.value.trim()) unlock(keyInput.value.trim());
+  });
+
+  function startPolling(){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(function(){
+      fetchRows(adminKey).then(function(data){ rows = data; render(); }).catch(function(){});
+    }, 30000);
+  }
+
+  refreshBtn.addEventListener('click', function(){
+    refreshBtn.textContent = '...';
+    fetchRows(adminKey).then(function(data){
+      rows = data; render();
+    }).catch(function(err){ gateErr.textContent = err.message; }).finally(function(){
+      refreshBtn.textContent = 'Rafraîchir';
+    });
+  });
+
+  document.querySelectorAll('th[data-key]').forEach(function(th){
+    th.addEventListener('click', function(){
+      var k = th.getAttribute('data-key');
+      if(sortKey === k){ sortDir *= -1; } else { sortKey = k; sortDir = 1; }
+      render();
+    });
+  });
+
+  search.addEventListener('input', render);
+
+  function guestCount(r){ return Number(r.guests) || 0; }
+  function isYes(r){
+    var s = String(r.attending || '').toLowerCase();
+    return s.indexOf('présent') === 0 || s.indexOf('present') === 0;
+  }
+
+  function render(){
+    var q = search.value.trim().toLowerCase();
+    var filtered = rows.filter(function(r){
+      return !q || String(r.name||'').toLowerCase().indexOf(q) !== -1;
+    });
+
+    filtered.sort(function(a,b){
+      var av = a[sortKey], bv = b[sortKey];
+      if(sortKey === 'guests') { av = guestCount(a); bv = guestCount(b); }
+      if(av < bv) return -1 * sortDir;
+      if(av > bv) return 1 * sortDir;
+      return 0;
+    });
+
+    tbody.innerHTML = '';
+    filtered.forEach(function(r){
+      var tr = document.createElement('tr');
+      var d = r.date ? new Date(r.date) : null;
+      var dateStr = d && !isNaN(d) ? d.toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' + d.toLocaleTimeString('fr-BE', {hour:'2-digit', minute:'2-digit'}) : '—';
+      tr.innerHTML =
+        '<td class="mono">' + dateStr + '</td>' +
+        '<td>' + escapeHtml(r.name || '—') + '</td>' +
+        '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '—') + '</span></td>' +
+        '<td>' + guestCount(r) + '</td>' +
+        '<td class="msg">' + escapeHtml(r.message || '—') + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    emptyMsg.style.display = filtered.length ? 'none' : 'block';
+
+    var total = rows.length;
+    var yes = rows.filter(isYes);
+    var no = total - yes.length;
+    var guests = yes.reduce(function(sum, r){ return sum + guestCount(r); }, 0);
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statYes').textContent = yes.length;
+    document.getElementById('statNo').textContent = no;
+    document.getElementById('statGuests').textContent = guests;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  exportBtn.addEventListener('click', function(){
+    var header = ['Date','Nom','Présence','Invités','Message'];
+    var lines = [header.join(';')];
+    rows.forEach(function(r){
+      lines.push([r.date, r.name, r.attending, guestCount(r), r.message].map(function(v){
+        return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"';
+      }).join(';'));
+    });
+    var blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'rsvp-christmas-party-2.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  if(!configured()){
+    gateErr.textContent = "APPS_SCRIPT_URL n'est pas encore configurée (voir README.md).";
+  } else if(adminKey){
+    keyInput.value = adminKey;
+    unlock(adminKey);
+  }
+})();
+</script>
+</body>
+</html>

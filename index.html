@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Christmas Party II — Kisha &amp; Esthy</title>
+<meta name="description" content="Invitation et RSVP pour le Christmas Party II de Kisha &amp; Esthy, le 19 décembre 2026.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E%F0%9F%8E%84%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0504;
+    --bg-1:#170907;
+    --garnet:#4a0f16;
+    --garnet-deep:#2e0a0f;
+    --gold:#b8934f;
+    --gold-light:#e3c98a;
+    --gold-dim:#7a6238;
+    --parchment:#efe3cd;
+    --ink:#e6dac6;
+    --ink-dim:#a3927e;
+    --line:rgba(184,147,79,.28);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 110% 55% at 50% -8%, #3a0d13 0%, transparent 55%),
+      radial-gradient(ellipse 90% 45% at 50% 108%, #2e0a0f 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-0) 100%);
+    background-color: var(--bg-0);
+    color:var(--ink);
+    font-family:'Cormorant Garamond', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{font-family:'Cormorant Garamond', Georgia, serif; margin:0; text-wrap:balance;}
+  .label{font-family:'Marcellus', Georgia, serif; text-transform:uppercase; letter-spacing:.26em;}
+  p{margin:0; line-height:1.65;}
+  button{font-family:inherit; cursor:pointer;}
+  input,textarea{font-family:inherit;}
+
+  #snowCanvas{
+    position:fixed; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:1; opacity:.8;
+  }
+
+  .stage{position:relative; z-index:2; max-width:600px; margin:0 auto; padding:0 24px 90px;}
+
+  .rule{ width:60px; height:1px; background:var(--gold); opacity:.55; margin:22px auto; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    text-align:center;
+    padding:96px 0 52px;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .medallion{ width:76px; height:76px; opacity:.9; margin-bottom:22px; }
+  .eyebrow{ font-size:.68rem; color:var(--gold); }
+  .wordmark{
+    margin-top:14px;
+    font-size:clamp(3rem, 11vw, 5.2rem);
+    line-height:.96; font-weight:500;
+    background:linear-gradient(115deg, var(--gold-dim) 0%, var(--gold-light) 32%, #fff7e6 44%, var(--gold-light) 56%, var(--gold) 100%);
+    background-size:220% auto;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 10s linear infinite;
+  }
+  .wordmark .numeral{ display:block; font-style:italic; font-size:.5em; margin-top:2px; }
+  @keyframes shimmer{ to{ background-position:220% center; } }
+  .tagline{
+    margin-top:10px; font-style:italic; font-size:1.18rem; color:var(--ink-dim);
+  }
+  .date-line{ margin-top:26px; font-size:.82rem; color:var(--ink); }
+  .hosts{ margin-top:10px; font-style:italic; font-size:1.14rem; color:var(--gold-light); }
+  .hosts .amp{ color:var(--gold-dim); font-style:normal; }
+
+  .cta-btn{
+    margin-top:30px;
+    background:linear-gradient(180deg, rgba(184,147,79,.16), rgba(184,147,79,.05));
+    color:var(--gold-light); border:1px solid var(--gold);
+    border-radius:2px; font-family:'Marcellus', Georgia, serif;
+    padding:15px 38px; font-size:.72rem; letter-spacing:.22em; text-transform:uppercase;
+    transition:background .25s ease, box-shadow .25s ease, letter-spacing .25s ease;
+  }
+  .cta-btn:hover{ background:linear-gradient(180deg, rgba(184,147,79,.28), rgba(184,147,79,.1)); box-shadow:0 0 26px rgba(184,147,79,.22); letter-spacing:.28em; }
+  .cta-btn.full{width:100%;}
+  .cta-btn:disabled{ opacity:.55; cursor:default; }
+  .cta-btn.ghost{ background:transparent; border-color:transparent; text-decoration:underline; text-underline-offset:5px; }
+  .cta-btn.ghost:hover{ box-shadow:none; background:transparent; letter-spacing:.22em; }
+
+  /* ---------- SECTIONS ---------- */
+  .section{ margin-top:74px; text-align:center; }
+  .section-title{ font-size:.68rem; color:var(--gold); margin-bottom:24px; }
+  .story p{ font-size:1.24rem; line-height:1.75; color:var(--ink); max-width:50ch; margin:0 auto; }
+  .story p + p{ margin-top:18px; }
+
+  .verse{ font-style:italic; font-size:1.5rem; color:var(--parchment); line-height:1.6; max-width:32ch; margin:0 auto; }
+  .verse-ref{ margin-top:18px; font-size:.7rem; color:var(--gold); }
+
+  .details{ margin-top:74px; display:grid; grid-template-columns:1fr; }
+  @media (min-width:560px){ .details{grid-template-columns:repeat(3,1fr);} }
+  .detail{ padding:24px 16px; border-top:1px solid var(--line); }
+  @media (min-width:560px){
+    .detail{ border-top:none; border-left:1px solid var(--line); }
+    .detail:first-child{ border-left:none; }
+  }
+  .detail .label{ font-size:.62rem; color:var(--gold); }
+  .detail .value{ margin-top:12px; font-size:1.12rem; color:var(--ink); }
+
+  .closing{ margin-top:86px; text-align:center; }
+  .closing .mission{ font-style:italic; font-size:1.3rem; color:var(--gold-light); margin-bottom:6px; }
+
+  footer{ text-align:center; margin-top:96px; padding-bottom:10px; }
+  footer .signature{ font-style:italic; font-size:1.3rem; color:var(--gold-light); }
+  footer .admin-link{
+    display:block; margin-top:26px; font-family:'Marcellus', serif; letter-spacing:.16em;
+    font-size:.62rem; text-transform:uppercase; color:var(--ink-dim); opacity:.5; text-decoration:none;
+  }
+  footer .admin-link:hover{ opacity:1; color:var(--gold-light); }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:50; display:none;
+    align-items:center; justify-content:center; padding:20px;
+    background:rgba(4,2,2,.75); backdrop-filter:blur(3px);
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-card{
+    position:relative; width:100%; max-width:420px; max-height:88vh; overflow-y:auto; overflow-x:hidden;
+    background:linear-gradient(180deg, #1c0a09, #100504);
+    border:1px solid var(--line); border-radius:6px;
+    padding:44px 34px 34px; text-align:center;
+    box-shadow:0 30px 70px rgba(0,0,0,.6);
+  }
+  .modal-card.celebrate::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(circle at 50% 38%, rgba(227,201,138,.28), transparent 62%);
+    animation:pulseGlow 1.7s ease-out forwards;
+  }
+  @keyframes pulseGlow{ 0%{opacity:0;} 28%{opacity:1;} 100%{opacity:0;} }
+
+  .close-btn{
+    position:absolute; top:14px; right:16px; background:none; border:none;
+    color:var(--ink-dim); font-size:1rem; line-height:1; padding:6px;
+  }
+  .close-btn:hover{color:var(--gold-light);}
+  .modal-eyebrow{ font-size:.62rem; color:var(--gold); }
+  .modal-card h2{ margin-top:10px; font-size:1.8rem; color:var(--parchment); font-weight:500; }
+  .modal-sub{ margin-top:8px; font-size:.85rem; color:var(--ink-dim); font-style:italic; }
+
+  form{margin-top:30px; display:flex; flex-direction:column; gap:22px; text-align:left;}
+  label.field-label{ font-size:.6rem; color:var(--gold); display:block; margin-bottom:8px; }
+  input[type=text], input[type=number], textarea{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
+    border-radius:0; padding:8px 2px; color:var(--parchment); font-size:1.05rem;
+  }
+  input:focus, textarea:focus{ outline:none; border-color:var(--gold); }
+  textarea{resize:vertical; min-height:60px;}
+
+  .attend-choice{ display:flex; justify-content:center; gap:34px; }
+  .attend-choice label{
+    position:relative; font-size:1.08rem; color:var(--ink-dim); cursor:pointer;
+    padding-bottom:5px; border-bottom:1px solid transparent; transition:color .2s ease, border-color .2s ease;
+  }
+  .attend-choice label.active{ color:var(--gold-light); border-color:var(--gold); }
+  .attend-choice input{ position:absolute; opacity:0; width:0; height:0; }
+
+  .form-note{font-size:.76rem; color:var(--ink-dim); text-align:center; font-style:italic;}
+
+  .thanks{display:none; text-align:center; padding:10px 0 4px;}
+  .thanks.show{display:block;}
+  .thanks h3{ font-size:1.7rem; color:var(--gold-light); font-weight:500;}
+  .thanks p{margin-top:12px; color:var(--ink-dim); font-size:.92rem;}
+  .thanks .cta-btn{margin-top:20px;}
+
+  /* ---------- INTRO ---------- */
+  body.intro-active{overflow:hidden;}
+  .intro-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:radial-gradient(ellipse 110% 65% at 50% 20%, #340c12 0%, var(--bg-0) 65%);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+    transition:opacity .8s ease, visibility .8s ease;
+  }
+  .intro-overlay.hidden{opacity:0; visibility:hidden; pointer-events:none;}
+
+  .curtain{
+    position:absolute; top:0; bottom:0; width:54%; z-index:5;
+    background:
+      radial-gradient(ellipse 60% 40% at 30% 20%, rgba(255,255,255,.05), transparent 60%),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.22) 0 12px, transparent 12px 24px),
+      linear-gradient(180deg, #5c1017, #2e0a0f 55%, #180507);
+    box-shadow:inset 0 0 80px rgba(0,0,0,.65), inset -8px 0 24px rgba(0,0,0,.45);
+    transition:transform 1.2s cubic-bezier(.76,0,.24,1);
+  }
+  .curtain::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:20px;
+    background:repeating-linear-gradient(90deg, var(--gold-dim) 0 8px, var(--gold) 8px 16px);
+    opacity:.6;
+  }
+  .curtain.left{ left:0; border-right:2px solid var(--gold-dim); }
+  .curtain.right{ right:0; border-left:2px solid var(--gold-dim); }
+  .intro-overlay.curtains-open .curtain.left{ transform:translateX(-102%); }
+  .intro-overlay.curtains-open .curtain.right{ transform:translateX(102%); }
+
+  .skip-intro{
+    position:absolute; bottom:24px; right:26px; background:none; border:none; z-index:6;
+    color:var(--ink-dim); font-size:.68rem; letter-spacing:.14em; text-transform:uppercase;
+    font-family:'Marcellus', serif;
+  }
+  .skip-intro:hover{ color:var(--gold-light); }
+
+  .intro-stage{ position:relative; display:flex; align-items:center; justify-content:center; min-height:280px; width:100%; text-align:center; }
+
+  .intro-medallion{
+    display:flex; flex-direction:column; align-items:center; gap:20px; cursor:pointer;
+    transition:opacity .6s ease, transform .6s ease; outline:none;
+  }
+  .intro-medallion svg{ width:118px; height:118px; }
+  .intro-hint{ font-size:.66rem; color:var(--ink-dim); animation:hintPulse 2.4s ease-in-out infinite; }
+  @keyframes hintPulse{ 0%,100%{opacity:.5;} 50%{opacity:1;} }
+  .intro-stage.open .intro-medallion{ opacity:0; transform:scale(1.18); pointer-events:none; position:absolute; }
+
+  .intro-title{
+    position:absolute; opacity:0; transform:translateY(8px);
+    transition:opacity .9s ease, transform .9s ease; pointer-events:none;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .intro-stage.open .intro-title{ opacity:1; transform:none; pointer-events:auto; position:relative; }
+  .intro-title .wordmark{ letter-spacing:.4em; transition:letter-spacing 1.3s cubic-bezier(.19,1,.22,1); }
+  .intro-stage.open .intro-title .wordmark{ letter-spacing:0; }
+  .intro-title .cta-btn{ opacity:0; transition:opacity .7s ease .9s; }
+  .intro-stage.open .intro-title .cta-btn{ opacity:1; }
+
+  @media (prefers-reduced-motion: reduce){
+    .wordmark{animation:none;}
+    .cta-btn{transition:none;}
+    .intro-overlay{display:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<!--
+  CONFIGURATION — collez ici l'URL de votre déploiement Google Apps Script
+  (voir README.md). Tant que ce n'est pas fait, les RSVP partent quand même
+  par WhatsApp (bouton "Doubler par WhatsApp" après confirmation).
+-->
+<script>
+  window.APPS_SCRIPT_URL = "COLLEZ_ICI_VOTRE_URL_APPS_SCRIPT";
+</script>
+
+<canvas id="snowCanvas" aria-hidden="true"></canvas>
+
+<div class="intro-overlay" id="introOverlay">
+  <div class="curtain left"></div>
+  <div class="curtain right"></div>
+  <button class="skip-intro" id="skipIntro">Passer</button>
+
+  <div class="intro-stage" id="introStage">
+    <div class="intro-medallion" id="introMedallion" role="button" tabindex="0" aria-label="Entrer">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="56" fill="none" stroke="#b8934f" stroke-width="1"/>
+        <circle cx="60" cy="60" r="47" fill="none" stroke="#b8934f" stroke-width="1" opacity=".5"/>
+        <text x="60" y="70" text-anchor="middle" font-family="Cormorant Garamond, serif" font-style="italic" font-size="28" fill="#e3c98a">K &amp; E</text>
+      </svg>
+      <p class="intro-hint label">Touchez pour entrer</p>
+    </div>
+
+    <div class="intro-title">
+      <p class="eyebrow label">Le Retour — Christmas Party</p>
+      <h2 class="wordmark">Christmas Party<span class="numeral">II</span></h2>
+      <p class="tagline">Bigger. Better. Full of Christmas joy.</p>
+      <button class="cta-btn" id="introContinue">Découvrir l'invitation</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+
+  <header class="hero">
+    <svg class="medallion" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="56" fill="none" stroke="#b8934f" stroke-width="1"/>
+      <circle cx="60" cy="60" r="47" fill="none" stroke="#b8934f" stroke-width="1" opacity=".5"/>
+      <text x="60" y="70" text-anchor="middle" font-family="Cormorant Garamond, serif" font-style="italic" font-size="28" fill="#e3c98a">K &amp; E</text>
+    </svg>
+
+    <p class="eyebrow label">Le Retour — Christmas Party</p>
+    <h1 class="wordmark">Christmas Party<span class="numeral">II</span></h1>
+    <p class="tagline">Bigger. Better. Full of Christmas joy.</p>
+
+    <p class="date-line label">Samedi 19 Décembre 2026</p>
+    <p class="hosts">Kisha <span class="amp">&amp;</span> Esthy</p>
+
+    <button class="cta-btn" data-open-rsvp>Confirmer ma présence</button>
+  </header>
+
+  <section class="section story">
+    <p class="section-title label">La suite</p>
+    <p>Vous l'attendiez… ou peut-être pas. Mais une chose est sûre : le Christmas Party revient pour une deuxième édition — et cette année, on voit les choses en grand.</p>
+    <p>Une soirée pour célébrer Noël ensemble : rire, partager un repas, profiter, créer de beaux souvenirs — et surtout, célébrer Celui qui est au cœur de cette saison.</p>
+  </section>
+
+  <section class="section">
+    <div class="rule"></div>
+    <p class="verse">Aujourd'hui, dans la ville de David, il vous est né un Sauveur, qui est le Christ, le Seigneur.</p>
+    <p class="verse-ref label">Luc 2.11</p>
+  </section>
+
+  <section class="details">
+    <div class="detail">
+      <p class="label">Quand</p>
+      <p class="value">Samedi 19 décembre 2026</p>
+    </div>
+    <div class="detail">
+      <p class="label">Où</p>
+      <p class="value">Lieu à venir — détails à suivre</p>
+    </div>
+    <div class="detail">
+      <p class="label">RSVP avant le</p>
+      <p class="value">30 septembre 2026</p>
+    </div>
+  </section>
+
+  <section class="closing">
+    <p class="mission">Save the date. Confirm your spot. Get ready.</p>
+    <button class="cta-btn" data-open-rsvp>Confirmer ma présence</button>
+  </section>
+
+  <footer>
+    <div class="rule"></div>
+    <p>Avec amour,</p>
+    <p class="signature">Kisha &amp; Esthy</p>
+    <a class="admin-link" href="admin.html">Espace organisateur</a>
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card" id="modalCard">
+    <button class="close-btn" id="closeModal" aria-label="Fermer">✕</button>
+
+    <p class="modal-eyebrow label">R.S.V.P.</p>
+    <h2>Christmas Party II</h2>
+    <p class="modal-sub">Merci de confirmer avant le 30 septembre 2026</p>
+
+    <form id="rsvpForm">
+      <div>
+        <label class="field-label label" for="fname">Prénom &amp; nom</label>
+        <input type="text" id="fname" required placeholder="Marie Dupont">
+      </div>
+
+      <div>
+        <label class="field-label label">Vous serez</label>
+        <div class="attend-choice">
+          <label class="active"><input type="radio" name="attending" value="Présent(e)" checked>Présent(e)</label>
+          <label><input type="radio" name="attending" value="Absent(e)">Absent(e)</label>
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label label" for="guestCount">Nombre de personnes (vous inclus(e))</label>
+        <input type="number" id="guestCount" min="1" max="20" value="1">
+      </div>
+
+      <div>
+        <label class="field-label label" for="msg">Message (optionnel)</label>
+        <textarea id="msg" placeholder="Un petit mot pour Kisha &amp; Esthy..."></textarea>
+      </div>
+
+      <button type="submit" class="cta-btn full" id="submitBtn">Confirmer ma présence</button>
+      <p class="form-note">Ta réponse est enregistrée directement — tu peux aussi la doubler sur WhatsApp juste après.</p>
+    </form>
+
+    <div class="thanks" id="thanksBox">
+      <div class="rule"></div>
+      <h3>Merci</h3>
+      <p>Ta réponse a bien été transmise à Kisha &amp; Esthy.</p>
+      <button class="cta-btn ghost" id="sendWhatsapp">Doubler par WhatsApp</button>
+      <button class="cta-btn" id="closeThanks">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- Snow ----
+  var canvas = document.getElementById('snowCanvas');
+  var ctx = canvas.getContext('2d');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var W, H, flakes = [];
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = document.documentElement.scrollHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function initParticles(){
+    flakes = [];
+    var count = Math.min(150, Math.floor(W/7));
+    for(var i=0;i<count;i++){
+      var layer = Math.random();
+      flakes.push({
+        x: Math.random()*W, y: Math.random()*H,
+        r: layer < .6 ? Math.random()*1.4+.6 : Math.random()*2.6+1.8,
+        speed: layer < .6 ? Math.random()*0.35+0.15 : Math.random()*0.7+0.4,
+        drift: Math.random()*0.7-0.35,
+        alpha: layer < .6 ? Math.random()*0.3+0.35 : Math.random()*0.25+0.65,
+        phase: Math.random()*Math.PI*2
+      });
+    }
+  }
+  initParticles();
+  window.addEventListener('resize', initParticles);
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<flakes.length;i++){
+      var f = flakes[i];
+      f.y += f.speed;
+      f.phase += 0.01;
+      f.x += Math.sin(f.phase)*f.drift*0.3;
+      if(f.y > H+5){ f.y = -5; f.x = Math.random()*W; }
+      if(f.x > W+5) f.x = -5;
+      if(f.x < -5) f.x = W+5;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(239,227,205,' + f.alpha.toFixed(2) + ')';
+      ctx.fill();
+    }
+    if(!reduced) requestAnimationFrame(draw);
+  }
+  draw();
+  if(reduced){ setInterval(draw, 5000); }
+
+  // ---- Intro ----
+  var introOverlay = document.getElementById('introOverlay');
+  var introStage = document.getElementById('introStage');
+  var introMedallion = document.getElementById('introMedallion');
+  var introContinue = document.getElementById('introContinue');
+  var skipIntro = document.getElementById('skipIntro');
+  var introDone = false;
+
+  if(!reduced && introOverlay){
+    document.body.classList.add('intro-active');
+    setTimeout(function(){ introOverlay.classList.add('curtains-open'); }, 550);
+
+    function openTitle(){ introStage.classList.add('open'); }
+    introMedallion.addEventListener('click', openTitle);
+    introMedallion.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openTitle(); }
+    });
+
+    function endIntro(){
+      if(introDone) return;
+      introDone = true;
+      introOverlay.classList.add('hidden');
+      document.body.classList.remove('intro-active');
+    }
+    introContinue.addEventListener('click', endIntro);
+    skipIntro.addEventListener('click', endIntro);
+  } else if(introOverlay){
+    introOverlay.classList.add('hidden');
+  }
+
+  // ---- Modal / RSVP ----
+  var overlay = document.getElementById('modalOverlay');
+  var modalCard = document.getElementById('modalCard');
+  var openBtns = document.querySelectorAll('[data-open-rsvp]');
+  var closeBtn = document.getElementById('closeModal');
+  var closeThanks = document.getElementById('closeThanks');
+  var sendWhatsapp = document.getElementById('sendWhatsapp');
+  var form = document.getElementById('rsvpForm');
+  var thanksBox = document.getElementById('thanksBox');
+  var submitBtn = document.getElementById('submitBtn');
+  var lastRsvp = null;
+
+  var attendLabels = document.querySelectorAll('.attend-choice label');
+  attendLabels.forEach(function(lbl){
+    lbl.addEventListener('click', function(){
+      attendLabels.forEach(function(l){ l.classList.remove('active'); });
+      lbl.classList.add('active');
+    });
+  });
+
+  function openModal(){
+    overlay.classList.add('open');
+    form.style.display = 'flex';
+    form.reset();
+    attendLabels.forEach(function(l,i){ l.classList.toggle('active', i===0); });
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Confirmer ma présence';
+    thanksBox.classList.remove('show');
+    modalCard.classList.remove('celebrate');
+  }
+  function closeModal(){ overlay.classList.remove('open'); }
+
+  openBtns.forEach(function(b){ b.addEventListener('click', openModal); });
+  closeBtn.addEventListener('click', closeModal);
+  closeThanks.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
+
+  function waLink(r){
+    var lines = [
+      'RSVP — Christmas Party II', '',
+      'Nom : ' + r.name,
+      'Présence : ' + r.attending,
+      'Nombre de personnes : ' + r.guests,
+      'Message : ' + (r.message || '—')
+    ];
+    return 'https://wa.me/32484282550?text=' + encodeURIComponent(lines.join('\n'));
+  }
+
+  sendWhatsapp.addEventListener('click', function(){
+    if(lastRsvp) window.open(waLink(lastRsvp), '_blank');
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var payload = {
+      name: document.getElementById('fname').value.trim(),
+      attending: form.querySelector('input[name=attending]:checked').value,
+      guests: document.getElementById('guestCount').value,
+      message: document.getElementById('msg').value.trim()
+    };
+    lastRsvp = payload;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi en cours...';
+
+    var configured = window.APPS_SCRIPT_URL && window.APPS_SCRIPT_URL.indexOf('COLLEZ_ICI') === -1;
+    var sendPromise = configured
+      ? fetch(window.APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(function(err){
+          console.warn('Enregistrement admin impossible :', err);
+        })
+      : Promise.resolve();
+
+    sendPromise.then(function(){
+      form.style.display = 'none';
+      thanksBox.classList.add('show');
+      modalCard.classList.add('celebrate');
+    });
+  });
+})();
+</script>
+</body>
+</html>

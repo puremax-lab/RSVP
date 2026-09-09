@@ -255,9 +255,8 @@
 <body>
 
 <!--
-  CONFIGURATION — collez ici l'URL de votre déploiement Google Apps Script
-  (voir README.md). Tant que ce n'est pas fait, les RSVP partent quand même
-  par WhatsApp (bouton "Doubler par WhatsApp" après confirmation).
+  CONFIGURATION : collez ici l'URL de votre déploiement Google Apps Script
+  (voir README.md).
 -->
 <script>
   window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeO_EU4RbK-kEtBkjc9AQ0dYSwPbgiTCIbSLQCwyK_r5Cp5Rrt5LGKmTlevdA7_Fon/exec";
@@ -376,14 +375,13 @@
       </div>
 
       <button type="submit" class="cta-btn full" id="submitBtn">Confirmer ma présence</button>
-      <p class="form-note">Ta réponse est enregistrée directement — tu peux aussi la doubler sur WhatsApp juste après.</p>
+      <p class="form-note">Ta réponse est enregistrée directement.</p>
     </form>
 
     <div class="thanks" id="thanksBox">
       <div class="rule"></div>
       <h3>Merci</h3>
       <p>Ta réponse a bien été transmise à Kisha &amp; Esthy.</p>
-      <button class="cta-btn ghost" id="sendWhatsapp">Doubler par WhatsApp</button>
       <button class="cta-btn" id="closeThanks">Fermer</button>
     </div>
   </div>
@@ -478,7 +476,6 @@
   var openBtns = document.querySelectorAll('[data-open-rsvp]');
   var closeBtn = document.getElementById('closeModal');
   var closeThanks = document.getElementById('closeThanks');
-  var sendWhatsapp = document.getElementById('sendWhatsapp');
   var form = document.getElementById('rsvpForm');
   var thanksBox = document.getElementById('thanksBox');
   var submitBtn = document.getElementById('submitBtn');
@@ -508,20 +505,6 @@
   closeBtn.addEventListener('click', closeModal);
   closeThanks.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
-
-  function waLink(r){
-    var lines = [
-      'RSVP : Christmas Party II', '',
-      'Nom : ' + r.name,
-      'Présence : ' + r.attending,
-      'Message : ' + (r.message || '/')
-    ];
-    return 'https://wa.me/32484282550?text=' + encodeURIComponent(lines.join('\n'));
-  }
-
-  sendWhatsapp.addEventListener('click', function(){
-    if(lastRsvp) window.open(waLink(lastRsvp), '_blank');
-  });
 
   form.addEventListener('submit', function(e){
     e.preventDefault();

@@ -131,7 +131,6 @@
     <div class="stats">
       <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Réponses</div></div>
       <div class="stat"><div class="n" id="statYes">0</div><div class="l">Présent(e)s</div></div>
-      <div class="stat"><div class="n" id="statGuests">0</div><div class="l">Invités au total</div></div>
       <div class="stat"><div class="n" id="statNo">0</div><div class="l">Absent(e)s</div></div>
     </div>
 
@@ -146,7 +145,6 @@
             <th data-key="date">Date</th>
             <th data-key="name">Nom</th>
             <th data-key="attending">Présence</th>
-            <th data-key="guests">Invités</th>
             <th data-key="message">Message</th>
           </tr>
         </thead>
@@ -246,7 +244,6 @@
 
   search.addEventListener('input', render);
 
-  function guestCount(r){ return Number(r.guests) || 0; }
   function isYes(r){
     var s = String(r.attending || '').toLowerCase();
     return s.indexOf('présent') === 0 || s.indexOf('present') === 0;
@@ -260,7 +257,6 @@
 
     filtered.sort(function(a,b){
       var av = a[sortKey], bv = b[sortKey];
-      if(sortKey === 'guests') { av = guestCount(a); bv = guestCount(b); }
       if(av < bv) return -1 * sortDir;
       if(av > bv) return 1 * sortDir;
       return 0;
@@ -275,7 +271,6 @@
         '<td class="mono">' + dateStr + '</td>' +
         '<td>' + escapeHtml(r.name || '—') + '</td>' +
         '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '—') + '</span></td>' +
-        '<td>' + guestCount(r) + '</td>' +
         '<td class="msg">' + escapeHtml(r.message || '—') + '</td>';
       tbody.appendChild(tr);
     });
@@ -285,12 +280,10 @@
     var total = rows.length;
     var yes = rows.filter(isYes);
     var no = total - yes.length;
-    var guests = yes.reduce(function(sum, r){ return sum + guestCount(r); }, 0);
 
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statYes').textContent = yes.length;
     document.getElementById('statNo').textContent = no;
-    document.getElementById('statGuests').textContent = guests;
   }
 
   function escapeHtml(s){
@@ -300,10 +293,10 @@
   }
 
   exportBtn.addEventListener('click', function(){
-    var header = ['Date','Nom','Présence','Invités','Message'];
+    var header = ['Date','Nom','Présence','Message'];
     var lines = [header.join(';')];
     rows.forEach(function(r){
-      lines.push([r.date, r.name, r.attending, guestCount(r), r.message].map(function(v){
+      lines.push([r.date, r.name, r.attending, r.message].map(function(v){
         return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"';
       }).join(';'));
     });

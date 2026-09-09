@@ -363,11 +363,6 @@
       </div>
 
       <div>
-        <label class="field-label label" for="guestCount">Nombre de personnes (vous inclus(e))</label>
-        <input type="number" id="guestCount" min="1" max="20" value="1">
-      </div>
-
-      <div>
         <label class="field-label label" for="msg">Message (optionnel)</label>
         <textarea id="msg" placeholder="Un petit mot pour Kisha &amp; Esthy..."></textarea>
       </div>
@@ -511,7 +506,6 @@
       'RSVP — Christmas Party II', '',
       'Nom : ' + r.name,
       'Présence : ' + r.attending,
-      'Nombre de personnes : ' + r.guests,
       'Message : ' + (r.message || '—')
     ];
     return 'https://wa.me/32484282550?text=' + encodeURIComponent(lines.join('\n'));
@@ -526,7 +520,6 @@
     var payload = {
       name: document.getElementById('fname').value.trim(),
       attending: form.querySelector('input[name=attending]:checked').value,
-      guests: document.getElementById('guestCount').value,
       message: document.getElementById('msg').value.trim()
     };
     lastRsvp = payload;

@@ -3,6 +3,8 @@
  * ---------------------------------------------------------
  * Ce script transforme une Google Sheet en petite base de données :
  *  - doPost()  → un invité confirme sa présence depuis le site → ajoute une ligne
+ *                (refusée si le même prénom + nom existe déjà), ou supprime
+ *                une ligne depuis l'admin (protégé par ADMIN_KEY)
  *  - doGet()   → le tableau de bord admin lit toutes les lignes (protégé par ADMIN_KEY)
  *
  * INSTALLATION (5 minutes) :
@@ -34,9 +36,25 @@ function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     var sheet = getSheet_();
+
+    // Suppression d'une ligne depuis l'admin (protégée par ADMIN_KEY)
+    if (data.action === 'delete') {
+      if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
+      return jsonOut_(deleteRow_(sheet, data.date));
+    }
+
+    var name = String(data.name || '').trim().slice(0, 200);
+    if (!name) return jsonOut_({ ok: false, error: 'empty_name' });
+
+    // Un(e) même invité(e) (prénom + nom, insensible à la casse) ne peut
+    // pas s'inscrire deux fois.
+    if (isDuplicate_(sheet, name)) {
+      return jsonOut_({ ok: false, duplicate: true });
+    }
+
     sheet.appendRow([
       new Date(),
-      String(data.name || '').slice(0, 200),
+      name,
       String(data.attending || '').slice(0, 50),
       Number(data.guests) || 1,
       String(data.message || '').slice(0, 1000)
@@ -45,6 +63,28 @@ function doPost(e) {
   } catch (err) {
     return jsonOut_({ ok: false, error: String(err) });
   }
+}
+
+function isDuplicate_(sheet, name) {
+  var normalized = name.toLowerCase().replace(/\s+/g, ' ').trim();
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var existing = String(values[i][1] || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (existing === normalized) return true;
+  }
+  return false;
+}
+
+function deleteRow_(sheet, dateKey) {
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var rowDate = values[i][0] instanceof Date ? values[i][0].toISOString() : String(values[i][0]);
+    if (rowDate === dateKey) {
+      sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'not_found' };
 }
 
 function doGet(e) {

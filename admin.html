@@ -96,6 +96,14 @@
 
   .empty{ text-align:center; padding:50px 20px; color:var(--ink-dim); font-style:italic; }
   .foot-note{ margin-top:22px; font-size:.78rem; color:var(--ink-dim); text-align:center; font-style:italic; }
+
+  .btn-delete{
+    background:none; border:1px solid var(--line); color:var(--ink-dim);
+    font-family:'Marcellus', serif; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+    padding:7px 12px; border-radius:2px; white-space:nowrap;
+  }
+  .btn-delete:hover{ border-color:var(--bad); color:var(--bad); }
+  .btn-delete:disabled{ opacity:.5; }
 </style>
 </head>
 <body>
@@ -146,6 +154,7 @@
             <th data-key="name">Nom</th>
             <th data-key="attending">Présence</th>
             <th data-key="message">Message</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -271,7 +280,8 @@
         '<td class="mono">' + dateStr + '</td>' +
         '<td>' + escapeHtml(r.name || '—') + '</td>' +
         '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '—') + '</span></td>' +
-        '<td class="msg">' + escapeHtml(r.message || '—') + '</td>';
+        '<td class="msg">' + escapeHtml(r.message || '—') + '</td>' +
+        '<td><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
       tbody.appendChild(tr);
     });
 
@@ -291,6 +301,37 @@
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
+
+  tbody.addEventListener('click', function(e){
+    var btn = e.target.closest('.btn-delete');
+    if(!btn) return;
+    var dateKey = btn.getAttribute('data-date');
+    if(!window.confirm('Supprimer cette réponse ?')) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    fetch(window.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', key: adminKey, date: dateKey })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.ok){
+          rows = rows.filter(function(r){ return r.date !== dateKey; });
+          render();
+        } else {
+          window.alert('Suppression impossible.');
+          btn.disabled = false;
+          btn.textContent = 'Supprimer';
+        }
+      })
+      .catch(function(){
+        window.alert('Suppression impossible (problème réseau).');
+        btn.disabled = false;
+        btn.textContent = 'Supprimer';
+      });
+  });
 
   exportBtn.addEventListener('click', function(){
     var header = ['Date','Nom','Présence','Message'];

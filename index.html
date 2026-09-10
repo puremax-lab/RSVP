@@ -181,6 +181,7 @@
   .attend-choice input{ position:absolute; opacity:0; width:0; height:0; }
 
   .form-note{font-size:.76rem; color:var(--ink-dim); text-align:center; font-style:italic;}
+  .form-error{font-size:.8rem; color:#d98a86; text-align:center;}
 
   .thanks{display:none; text-align:center; padding:10px 0 4px;}
   .thanks.show{display:block;}
@@ -378,6 +379,7 @@
         <textarea id="msg" placeholder="Un petit mot pour Kisha &amp; Esthy..."></textarea>
       </div>
 
+      <p class="form-error" id="formError" hidden></p>
       <button type="submit" class="cta-btn full" id="submitBtn">Confirmer ma présence</button>
       <p class="form-note">Ta réponse est enregistrée directement.</p>
     </form>
@@ -483,6 +485,7 @@
   var form = document.getElementById('rsvpForm');
   var thanksBox = document.getElementById('thanksBox');
   var submitBtn = document.getElementById('submitBtn');
+  var formError = document.getElementById('formError');
   var lastRsvp = null;
 
   var attendLabels = document.querySelectorAll('.attend-choice label');
@@ -500,6 +503,7 @@
     attendLabels.forEach(function(l,i){ l.classList.toggle('active', i===0); });
     submitBtn.disabled = false;
     submitBtn.textContent = 'Confirmer ma présence';
+    formError.hidden = true;
     thanksBox.classList.remove('show');
     modalCard.classList.remove('celebrate');
   }
@@ -510,6 +514,19 @@
   closeThanks.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
 
+  function showThanks(){
+    form.style.display = 'none';
+    thanksBox.classList.add('show');
+    modalCard.classList.add('celebrate');
+  }
+
+  function showDuplicateError(){
+    formError.textContent = 'Vous êtes déjà inscrit(e) avec ce nom.';
+    formError.hidden = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Confirmer ma présence';
+  }
+
   form.addEventListener('submit', function(e){
     e.preventDefault();
     var payload = {
@@ -519,21 +536,30 @@
     };
     lastRsvp = payload;
 
+    formError.hidden = true;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Envoi en cours...';
 
     var configured = window.APPS_SCRIPT_URL && window.APPS_SCRIPT_URL.indexOf('COLLEZ_ICI') === -1;
-    var sendPromise = configured
-      ? fetch(window.APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(function(err){
-          console.warn('Enregistrement admin impossible :', err);
-        })
-      : Promise.resolve();
 
-    sendPromise.then(function(){
-      form.style.display = 'none';
-      thanksBox.classList.add('show');
-      modalCard.classList.add('celebrate');
-    });
+    if(!configured){
+      showThanks();
+      return;
+    }
+
+    fetch(window.APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.duplicate){
+          showDuplicateError();
+          return;
+        }
+        showThanks();
+      })
+      .catch(function(err){
+        console.warn('Enregistrement admin impossible :', err);
+        showThanks();
+      });
   });
 })();
 </script>

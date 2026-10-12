@@ -126,8 +126,15 @@
 
   footer{ text-align:center; margin-top:96px; padding-bottom:10px; }
   footer .signature{ font-style:italic; font-size:1.3rem; color:var(--gold-light); }
+  footer .member-link{
+    display:inline-block; margin-top:30px; font-family:'Marcellus', serif; letter-spacing:.14em;
+    font-size:.68rem; text-transform:uppercase; color:var(--gold-light); text-decoration:none;
+    border:1px solid var(--line); border-radius:2px; padding:11px 22px; transition:background .2s ease, border-color .2s ease;
+  }
+  footer .member-link:hover{ border-color:var(--gold); background:rgba(184,147,79,.08); }
+
   footer .admin-link{
-    display:block; margin-top:26px; font-family:'Marcellus', serif; letter-spacing:.16em;
+    display:block; margin-top:22px; font-family:'Marcellus', serif; letter-spacing:.16em;
     font-size:.62rem; text-transform:uppercase; color:var(--ink-dim); opacity:.5; text-decoration:none;
   }
   footer .admin-link:hover{ opacity:1; color:var(--gold-light); }
@@ -347,6 +354,7 @@
     <div class="rule"></div>
     <p>Avec amour,</p>
     <p class="signature">Kisha &amp; Esthy</p>
+    <a class="member-link" href="member.html">Mon espace invité · Secret Santa</a>
     <a class="admin-link" href="admin.html">Espace organisateur</a>
   </footer>
 </div>

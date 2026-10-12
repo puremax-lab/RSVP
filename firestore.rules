@@ -1,0 +1,81 @@
+rules_version = '2';
+
+// Christmas Party II — espace membre (comptes invités + Secret Santa + messagerie privée)
+//
+// Collections :
+//  - guests/{uid}               profil d'un invité connecté (1 doc par compte)
+//  - pairs/{pairId}/messages/*  messages entre les deux personnes d'un binôme Secret Santa
+//                                (pairId = les deux uid triés et joints par "_")
+//
+// Admin = Kisha et Max, identifiés par leur email de connexion (pas de mot de passe
+// ni de clé séparée à gérer : Firestore vérifie directement l'email authentifié).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email in [
+        'josepha.tsm@outlook.be',
+        'youtamaxime@gmail.com'
+      ];
+    }
+
+    function isPairMember(pairId) {
+      return isSignedIn() && (
+        pairId.split('_')[0] == request.auth.uid ||
+        pairId.split('_')[1] == request.auth.uid
+      );
+    }
+
+    match /guests/{uid} {
+      // Un invité peut lire son propre profil, un admin peut tout lire,
+      // et la personne qui doit offrir un cadeau à {uid} peut lire son nom
+      // (nécessaire pour savoir à qui elle offre — mais pas l'inverse,
+      // ce qui garde le "secret" du Secret Santa).
+      allow read: if isSignedIn() && (
+        request.auth.uid == uid ||
+        isAdmin() ||
+        get(/databases/$(database)/documents/guests/$(request.auth.uid)).data.santaForUid == uid
+      );
+
+      // Création du profil : uniquement par la personne elle-même, avec son
+      // propre email authentifié, et seulement les champs attendus (pas de
+      // santaForUid auto-assigné).
+      allow create: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['name', 'email', 'createdAt'])
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0;
+
+      // Mise à jour : l'invité peut seulement changer son propre nom.
+      // Le tirage au sort (santaForUid) n'est modifiable que par un admin.
+      allow update: if isAdmin()
+                    || (isSignedIn() && request.auth.uid == uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
+
+      allow delete: if isAdmin();
+    }
+
+    match /pairs/{pairId}/messages/{messageId} {
+      // Seules les deux personnes du binôme peuvent lire ou écrire —
+      // même les admins n'y ont pas accès, c'est strictement privé.
+      allow read: if isPairMember(pairId);
+      allow create: if isPairMember(pairId)
+                    && request.resource.data.senderUid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['senderUid', 'text', 'createdAt'])
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() < 2000;
+      allow update, delete: if false;
+    }
+
+    // Tout le reste est fermé par défaut.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -104,6 +104,27 @@
   }
   .btn-delete:hover{ border-color:var(--bad); color:var(--bad); }
   .btn-delete:disabled{ opacity:.5; }
+
+  [hidden]{ display:none !important; }
+
+  .santa-section{ margin-top:70px; padding-top:40px; border-top:1px solid var(--line); text-align:center; }
+  .santa-section .rule{ margin:0 auto 22px; }
+  .santa-section h1{ font-size:1.7rem; color:var(--gold-light); }
+  .santa-section .sub{ color:var(--ink-dim); font-size:.9rem; margin-top:10px; line-height:1.55; font-style:italic; }
+
+  .santa-section input[type=email]{
+    width:100%; max-width:380px; margin:0 auto; display:block; background:transparent; border:none; border-bottom:1px solid var(--line);
+    padding:10px 2px; color:var(--parchment); font-size:1.1rem; text-align:center; letter-spacing:.08em;
+  }
+  .santa-section input[type=email]:focus{ outline:none; border-color:var(--gold); }
+
+  .msg-note{ font-size:.82rem; margin-top:14px; min-height:1.2em; font-style:italic; }
+  .msg-note.ok{ color:var(--ok); }
+  .msg-note.bad{ color:var(--bad); }
+
+  #santaDash{ text-align:left; margin-top:30px; }
+  #santaDash .dash-head{ margin-bottom:24px; }
+  #santaDrawBtn{ max-width:320px; margin:26px auto 0; display:block; }
 </style>
 </head>
 <body>
@@ -111,6 +132,11 @@
 <script>
   window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeO_EU4RbK-kEtBkjc9AQ0dYSwPbgiTCIbSLQCwyK_r5Cp5Rrt5LGKmTlevdA7_Fon/exec";
 </script>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
 <div class="wrap">
   <p style="margin-bottom:30px;"><a class="back" href="index.html">← Retour à l'invitation</a></p>
@@ -163,6 +189,48 @@
     </div>
 
     <p class="foot-note">Rafraîchissement automatique toutes les 30 secondes.</p>
+  </div>
+
+  <div class="santa-section" id="santaSection">
+    <div class="rule"></div>
+    <h1>Secret Santa</h1>
+    <p class="sub">Connexion admin par lien magique (même système que l'espace invité). Réservé à Kisha &amp; Max.</p>
+
+    <div id="santaLogin">
+      <div style="margin-top:26px; max-width:380px; margin-left:auto; margin-right:auto;">
+        <input type="email" id="santaEmailInput" placeholder="ton-email-admin@..." autocomplete="email">
+      </div>
+      <button class="btn small" id="santaSendLinkBtn" style="margin-top:18px;">Recevoir mon lien de connexion</button>
+      <p class="msg-note" id="santaLoginNote"></p>
+    </div>
+
+    <div id="santaDenied" hidden style="text-align:center;">
+      <p class="sub">Ce compte (<span id="santaDeniedEmail"></span>) n'est pas autorisé comme admin.</p>
+      <button class="btn ghost small" id="santaSignOutBtn2" style="margin-top:14px;">Se déconnecter</button>
+    </div>
+
+    <div id="santaDash" hidden>
+      <div class="dash-head">
+        <div><p class="sub" id="santaWho" style="margin:0;"></p></div>
+        <div class="head-actions">
+          <button class="btn ghost small" id="santaRefreshBtn">Rafraîchir</button>
+          <button class="btn ghost small" id="santaSignOutBtn">Déconnexion</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="santaTable">
+          <thead>
+            <tr><th>Nom</th><th>Email</th><th>Offre à</th><th>Reçoit de</th></tr>
+          </thead>
+          <tbody id="santaTbody"></tbody>
+        </table>
+        <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
+      </div>
+
+      <button class="btn" id="santaDrawBtn">Lancer le tirage au sort</button>
+      <p class="msg-note" id="santaDrawNote" style="text-align:center;"></p>
+    </div>
   </div>
 </div>
 
@@ -355,6 +423,218 @@
     keyInput.value = adminKey;
     unlock(adminKey);
   }
+})();
+</script>
+
+<script>
+(function(){
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+
+  var santaLogin = document.getElementById('santaLogin');
+  var santaDenied = document.getElementById('santaDenied');
+  var santaDash = document.getElementById('santaDash');
+
+  var santaEmailInput = document.getElementById('santaEmailInput');
+  var santaSendLinkBtn = document.getElementById('santaSendLinkBtn');
+  var santaLoginNote = document.getElementById('santaLoginNote');
+  var santaDeniedEmail = document.getElementById('santaDeniedEmail');
+
+  var santaWho = document.getElementById('santaWho');
+  var santaRefreshBtn = document.getElementById('santaRefreshBtn');
+  var santaSignOutBtn = document.getElementById('santaSignOutBtn');
+  var santaSignOutBtn2 = document.getElementById('santaSignOutBtn2');
+  var santaTbody = document.getElementById('santaTbody');
+  var santaEmptyMsg = document.getElementById('santaEmptyMsg');
+  var santaDrawBtn = document.getElementById('santaDrawBtn');
+  var santaDrawNote = document.getElementById('santaDrawNote');
+
+  var EMAIL_KEY = 'cp2_admin_email_for_signin';
+  var guestsCache = [];
+
+  function showSanta(card){
+    [santaLogin, santaDenied, santaDash].forEach(function(c){ c.hidden = (c !== card); });
+  }
+
+  function setNote(el, text, kind){
+    el.textContent = text || '';
+    el.className = 'msg-note' + (kind ? ' ' + kind : '');
+  }
+
+  function pairId(a, b){ return [a, b].sort().join('_'); }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  // ---- Connexion par lien magique (même principe que member.html) ----
+  santaSendLinkBtn.addEventListener('click', function(){
+    var email = santaEmailInput.value.trim();
+    if(!email){ setNote(santaLoginNote, 'Entre ton adresse e-mail admin.', 'bad'); return; }
+
+    santaSendLinkBtn.disabled = true;
+    santaSendLinkBtn.textContent = 'Envoi en cours...';
+
+    var actionCodeSettings = {
+      url: window.location.href.split('#')[0].split('?')[0],
+      handleCodeInApp: true
+    };
+
+    auth.sendSignInLinkToEmail(email, actionCodeSettings).then(function(){
+      window.localStorage.setItem(EMAIL_KEY, email);
+      setNote(santaLoginNote, 'Lien envoyé ! Vérifie ta boîte mail (et tes spams) et clique dessus pour te connecter.', 'ok');
+    }).catch(function(err){
+      setNote(santaLoginNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      santaSendLinkBtn.disabled = false;
+      santaSendLinkBtn.textContent = 'Recevoir mon lien de connexion';
+    });
+  });
+
+  function completeSignInIfNeeded(){
+    if(!auth.isSignInWithEmailLink(window.location.href)) return;
+
+    var email = window.localStorage.getItem(EMAIL_KEY);
+    if(!email){
+      email = window.prompt('Confirme ton adresse e-mail admin pour terminer la connexion :');
+    }
+    if(!email) return;
+
+    auth.signInWithEmailLink(email, window.location.href).then(function(){
+      window.localStorage.removeItem(EMAIL_KEY);
+      var cleanUrl = window.location.href.split('?')[0];
+      window.history.replaceState({}, document.title, cleanUrl);
+    }).catch(function(err){
+      setNote(santaLoginNote, 'Le lien a expiré ou est invalide. Redemande-en un nouveau.', 'bad');
+    });
+  }
+
+  function signOut(){
+    auth.signOut();
+  }
+  santaSignOutBtn.addEventListener('click', signOut);
+  santaSignOutBtn2.addEventListener('click', signOut);
+
+  // ---- Liste des invités inscrits ----
+  function loadGuests(){
+    return db.collection('guests').get().then(function(qs){
+      var list = [];
+      qs.forEach(function(doc){
+        var d = doc.data();
+        list.push({
+          uid: doc.id,
+          name: d.name || '—',
+          email: d.email || '—',
+          santaForUid: d.santaForUid || null,
+          receivingThreadId: d.receivingThreadId || null
+        });
+      });
+      guestsCache = list;
+      renderSantaTable();
+    }).catch(function(err){
+      setNote(santaDrawNote, 'Erreur de chargement : ' + (err.message || err), 'bad');
+    });
+  }
+
+  function nameByUid(uid){
+    var g = guestsCache.filter(function(x){ return x.uid === uid; })[0];
+    return g ? g.name : '—';
+  }
+
+  function giverNameFor(uid){
+    var g = guestsCache.filter(function(x){ return x.santaForUid === uid; })[0];
+    return g ? g.name : '—';
+  }
+
+  function renderSantaTable(){
+    santaTbody.innerHTML = '';
+    guestsCache.forEach(function(g){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(g.name) + '</td>' +
+        '<td class="mono">' + escapeHtml(g.email) + '</td>' +
+        '<td>' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '—') + '</td>' +
+        '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '—') + '</td>';
+      santaTbody.appendChild(tr);
+    });
+    santaEmptyMsg.style.display = guestsCache.length ? 'none' : 'block';
+  }
+
+  santaRefreshBtn.addEventListener('click', function(){
+    santaRefreshBtn.textContent = '...';
+    loadGuests().finally(function(){ santaRefreshBtn.textContent = 'Rafraîchir'; });
+  });
+
+  // ---- Tirage au sort (dérangement : décalage circulaire sur une liste mélangée) ----
+  function computeDraw(guests){
+    var n = guests.length;
+    var shuffled = guests.slice();
+    for(var i = n - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
+    }
+    var assignments = [];
+    for(var k = 0; k < n; k++){
+      assignments.push({ giver: shuffled[k], recipient: shuffled[(k + 1) % n] });
+    }
+    return assignments;
+  }
+
+  santaDrawBtn.addEventListener('click', function(){
+    if(guestsCache.length < 2){
+      setNote(santaDrawNote, 'Il faut au moins 2 invités inscrits pour tirer au sort.', 'bad');
+      return;
+    }
+
+    var already = guestsCache.some(function(g){ return g.santaForUid; });
+    var warning = already
+      ? 'Un tirage existe déjà. Relancer en créera un nouveau et remplacera tous les binômes actuels. Continuer ?'
+      : 'Lancer le tirage au sort pour ' + guestsCache.length + ' invité(e)s ?';
+    if(!window.confirm(warning)) return;
+
+    santaDrawBtn.disabled = true;
+    santaDrawBtn.textContent = 'Tirage en cours...';
+
+    var assignments = computeDraw(guestsCache);
+    var batch = db.batch();
+    assignments.forEach(function(a){
+      var pid = pairId(a.giver.uid, a.recipient.uid);
+      batch.update(db.collection('guests').doc(a.giver.uid), { santaForUid: a.recipient.uid });
+      batch.update(db.collection('guests').doc(a.recipient.uid), { receivingThreadId: pid });
+    });
+
+    batch.commit().then(function(){
+      setNote(santaDrawNote, 'Tirage effectué ! Les binômes ont été attribués.', 'ok');
+      return loadGuests();
+    }).catch(function(err){
+      setNote(santaDrawNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      santaDrawBtn.disabled = false;
+      santaDrawBtn.textContent = 'Lancer le tirage au sort';
+    });
+  });
+
+  // ---- État de connexion ----
+  auth.onAuthStateChanged(function(user){
+    if(!user){
+      showSanta(santaLogin);
+      return;
+    }
+    var email = user.email || '';
+    if(!window.ADMIN_EMAILS || window.ADMIN_EMAILS.indexOf(email) === -1){
+      santaDeniedEmail.textContent = email;
+      showSanta(santaDenied);
+      return;
+    }
+    santaWho.textContent = 'Connecté comme ' + email;
+    showSanta(santaDash);
+    loadGuests();
+  });
+
+  completeSignInIfNeeded();
 })();
 </script>
 </body>

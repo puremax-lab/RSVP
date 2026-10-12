@@ -221,15 +221,37 @@
       <div class="table-wrap">
         <table id="santaTable">
           <thead>
-            <tr><th>Nom</th><th>Email</th><th>Offre à</th><th>Reçoit de</th></tr>
+            <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th></tr>
           </thead>
           <tbody id="santaTbody"></tbody>
         </table>
         <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
       </div>
+      <p class="sub" id="santaParticipantsNote" style="text-align:center; margin-top:14px;"></p>
 
       <button class="btn" id="santaDrawBtn">Lancer le tirage au sort</button>
       <p class="msg-note" id="santaDrawNote" style="text-align:center;"></p>
+
+      <div style="margin-top:50px; padding-top:34px; border-top:1px solid var(--line);">
+        <p class="label" style="font-size:.64rem; color:var(--gold); margin-bottom:12px;">Annonces</p>
+        <p class="sub" style="margin-bottom:20px;">Publie une mise à jour dans l'espace invité, et envoie-la en même temps par e-mail à tous ceux qui ont déjà un compte.</p>
+
+        <label class="label" for="updateTitleInput" style="display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px;">Titre</label>
+        <input type="text" id="updateTitleInput" placeholder="Ex. Participation de 40 € demandée"
+          style="width:100%; background:transparent; border:none; border-bottom:1px solid var(--line); padding:10px 2px; color:var(--parchment); font-size:1.05rem; margin-bottom:20px;">
+
+        <label class="label" for="updateBodyInput" style="display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px;">Message</label>
+        <textarea id="updateBodyInput" rows="7" placeholder="Écris l'annonce ici..."
+          style="width:100%; background:transparent; border:1px solid var(--line); border-radius:4px; padding:12px; color:var(--parchment); font-size:.98rem; font-family:inherit; resize:vertical;"></textarea>
+
+        <label style="display:flex; align-items:center; gap:10px; margin-top:16px; cursor:pointer;">
+          <input type="checkbox" id="updateEmailToggle" checked style="width:auto;">
+          <span style="font-size:.88rem; color:var(--ink-dim);">Envoyer aussi par e-mail à tous les invités ayant un compte</span>
+        </label>
+
+        <button class="btn" id="updatePublishBtn" style="margin-top:22px; max-width:320px; display:block;">Publier l'annonce</button>
+        <p class="msg-note" id="updateNote" style="text-align:left;"></p>
+      </div>
     </div>
   </div>
 </div>
@@ -446,9 +468,16 @@
   var santaSignOutBtn = document.getElementById('santaSignOutBtn');
   var santaSignOutBtn2 = document.getElementById('santaSignOutBtn2');
   var santaTbody = document.getElementById('santaTbody');
+  var santaParticipantsNote = document.getElementById('santaParticipantsNote');
   var santaEmptyMsg = document.getElementById('santaEmptyMsg');
   var santaDrawBtn = document.getElementById('santaDrawBtn');
   var santaDrawNote = document.getElementById('santaDrawNote');
+
+  var updateTitleInput = document.getElementById('updateTitleInput');
+  var updateBodyInput = document.getElementById('updateBodyInput');
+  var updateEmailToggle = document.getElementById('updateEmailToggle');
+  var updatePublishBtn = document.getElementById('updatePublishBtn');
+  var updateNote = document.getElementById('updateNote');
 
   var EMAIL_KEY = 'cp2_admin_email_for_signin';
   var guestsCache = [];
@@ -528,6 +557,7 @@
           uid: doc.id,
           name: d.name || '—',
           email: d.email || '—',
+          wantsSanta: d.wantsSanta !== false,
           santaForUid: d.santaForUid || null,
           receivingThreadId: d.receivingThreadId || null
         });
@@ -549,6 +579,10 @@
     return g ? g.name : '—';
   }
 
+  function participantsOnly(){
+    return guestsCache.filter(function(g){ return g.wantsSanta; });
+  }
+
   function renderSantaTable(){
     santaTbody.innerHTML = '';
     guestsCache.forEach(function(g){
@@ -556,11 +590,17 @@
       tr.innerHTML =
         '<td>' + escapeHtml(g.name) + '</td>' +
         '<td class="mono">' + escapeHtml(g.email) + '</td>' +
+        '<td><span class="status ' + (g.wantsSanta ? 'yes' : 'no') + '">' + (g.wantsSanta ? 'Oui' : 'Non') + '</span></td>' +
         '<td>' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '—') + '</td>' +
         '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '—') + '</td>';
       santaTbody.appendChild(tr);
     });
     santaEmptyMsg.style.display = guestsCache.length ? 'none' : 'block';
+
+    var n = participantsOnly().length;
+    santaParticipantsNote.textContent = guestsCache.length
+      ? n + ' / ' + guestsCache.length + ' invité(e)s inscrit(e)s participent au Secret Santa.'
+      : '';
   }
 
   santaRefreshBtn.addEventListener('click', function(){
@@ -584,26 +624,36 @@
   }
 
   santaDrawBtn.addEventListener('click', function(){
-    if(guestsCache.length < 2){
-      setNote(santaDrawNote, 'Il faut au moins 2 invités inscrits pour tirer au sort.', 'bad');
+    var participants = participantsOnly();
+
+    if(participants.length < 2){
+      setNote(santaDrawNote, 'Il faut au moins 2 invités ayant choisi de participer au Secret Santa pour tirer au sort (actuellement : ' + participants.length + ').', 'bad');
       return;
     }
 
-    var already = guestsCache.some(function(g){ return g.santaForUid; });
+    var already = participants.some(function(g){ return g.santaForUid; });
     var warning = already
-      ? 'Un tirage existe déjà. Relancer en créera un nouveau et remplacera tous les binômes actuels. Continuer ?'
-      : 'Lancer le tirage au sort pour ' + guestsCache.length + ' invité(e)s ?';
+      ? 'Un tirage existe déjà. Relancer en créera un nouveau et remplacera tous les binômes actuels. Continuer pour ' + participants.length + ' participant(e)s ?'
+      : 'Lancer le tirage au sort pour ' + participants.length + ' participant(e)s (sur ' + guestsCache.length + ' inscrit(e)s) ?';
     if(!window.confirm(warning)) return;
 
     santaDrawBtn.disabled = true;
     santaDrawBtn.textContent = 'Tirage en cours...';
 
-    var assignments = computeDraw(guestsCache);
+    var assignments = computeDraw(participants);
     var batch = db.batch();
     assignments.forEach(function(a){
       var pid = pairId(a.giver.uid, a.recipient.uid);
       batch.update(db.collection('guests').doc(a.giver.uid), { santaForUid: a.recipient.uid });
       batch.update(db.collection('guests').doc(a.recipient.uid), { receivingThreadId: pid });
+
+      // En-tête du binôme (juste les deux emails) : permet au site de savoir
+      // où envoyer la notification "nouveau message", sans jamais révéler les
+      // noms entre les deux personnes.
+      var emails = {};
+      emails[a.giver.uid] = a.giver.email;
+      emails[a.recipient.uid] = a.recipient.email;
+      batch.set(db.collection('pairs').doc(pid), { emails: emails });
     });
 
     batch.commit().then(function(){
@@ -614,6 +664,77 @@
     }).finally(function(){
       santaDrawBtn.disabled = false;
       santaDrawBtn.textContent = 'Lancer le tirage au sort';
+    });
+  });
+
+  // ---- Annonces (publiées sur le site + e-mail groupé optionnel) ----
+  updatePublishBtn.addEventListener('click', function(){
+    var title = updateTitleInput.value.trim();
+    var body = updateBodyInput.value.trim();
+    if(!title || !body){
+      setNote(updateNote, 'Remplis le titre et le message.', 'bad');
+      return;
+    }
+
+    var wantsEmail = updateEmailToggle.checked;
+    var recipients = [];
+    if(wantsEmail){
+      var seen = {};
+      guestsCache.forEach(function(g){
+        var email = (g.email || '').trim().toLowerCase();
+        if(email && email !== '—' && !seen[email]){ seen[email] = true; recipients.push(email); }
+      });
+    }
+
+    var confirmMsg = (wantsEmail && recipients.length)
+      ? 'Publier cette annonce sur le site ET l\'envoyer par e-mail à ' + recipients.length + ' invité(e)s ?'
+      : 'Publier cette annonce sur le site (sans e-mail, aucun destinataire disponible pour l\'instant) ?';
+    if(wantsEmail && !recipients.length){
+      if(!window.confirm(confirmMsg)) return;
+    } else if(!window.confirm(confirmMsg)){
+      return;
+    }
+
+    updatePublishBtn.disabled = true;
+    updatePublishBtn.textContent = 'Publication...';
+    setNote(updateNote, '', '');
+
+    db.collection('updates').add({
+      title: title,
+      body: body,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){
+      if(!wantsEmail || !recipients.length){
+        setNote(updateNote, 'Annonce publiée sur le site.', 'ok');
+        updateTitleInput.value = '';
+        updateBodyInput.value = '';
+        return;
+      }
+
+      var adminKey = window.sessionStorage.getItem('cp2_admin_key') || '';
+      if(!adminKey){
+        setNote(updateNote, "Annonce publiée sur le site. Pour l'e-mail : déverrouille aussi le tableau de bord RSVP tout en haut de la page (clé admin), puis republie.", 'bad');
+        return;
+      }
+
+      return fetch(window.APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'sendUpdate', key: adminKey, subject: title, body: body, recipients: recipients })
+      }).then(function(r){ return r.json(); }).then(function(data){
+        if(data && data.ok){
+          var extra = (data.failed && data.failed.length) ? (' (' + data.failed.length + ' échec(s))') : '';
+          setNote(updateNote, 'Annonce publiée sur le site et envoyée par e-mail à ' + data.sent + ' invité(e)s' + extra + '.', 'ok');
+          updateTitleInput.value = '';
+          updateBodyInput.value = '';
+        } else {
+          setNote(updateNote, "Annonce publiée sur le site, mais l'envoi e-mail a échoué (" + ((data && data.error) || 'erreur inconnue') + ').', 'bad');
+        }
+      });
+    }).catch(function(err){
+      setNote(updateNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      updatePublishBtn.disabled = false;
+      updatePublishBtn.textContent = "Publier l'annonce";
     });
   });
 

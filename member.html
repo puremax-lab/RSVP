@@ -104,6 +104,9 @@
 </head>
 <body>
 
+<script>
+  window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeO_EU4RbK-kEtBkjc9AQ0dYSwPbgiTCIbSLQCwyK_r5Cp5Rrt5LGKmTlevdA7_Fon/exec";
+</script>
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -134,6 +137,12 @@
       <label class="field-label label" for="nameInput">Prénom &amp; nom</label>
       <input type="text" id="nameInput" placeholder="Marie Dupont">
     </div>
+    <div style="margin-top:26px; text-align:left; border:1px solid var(--line); border-radius:4px; padding:16px 18px;">
+      <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+        <input type="checkbox" id="wantsSantaInput" style="margin-top:4px; width:auto;">
+        <span style="font-size:.92rem; line-height:1.5;">Je souhaite participer au Secret Santa 🎁 <span style="display:block; color:var(--ink-dim); font-style:italic; font-size:.82rem; margin-top:3px;">Tu pourras toujours changer d'avis plus tard, avant le tirage au sort.</span></span>
+      </label>
+    </div>
     <button class="btn" id="saveNameBtn">Continuer</button>
     <p class="msg-note" id="nameNote"></p>
   </div>
@@ -145,7 +154,19 @@
       <button class="btn ghost small" id="signOutBtn">Déconnexion</button>
     </div>
 
-    <div class="section" id="givingSection">
+    <div id="updatesSection">
+      <p class="section-title label">Annonces</p>
+      <div id="updatesList"></div>
+    </div>
+
+    <div class="section" id="santaOptSection">
+      <p class="section-title label">Secret Santa — participation</p>
+      <p class="lead" id="santaOptLead">—</p>
+      <button class="btn ghost small" id="santaOptToggleBtn" style="margin-top:14px;"></button>
+      <p class="msg-note" id="santaOptNote"></p>
+    </div>
+
+    <div class="section" id="givingSection" hidden>
       <p class="section-title label">Ton Secret Santa — tu offres à</p>
       <p class="lead" id="givingLead">—</p>
       <div class="thread" id="givingThread" hidden>
@@ -157,7 +178,7 @@
       </div>
     </div>
 
-    <div class="section" id="receivingSection">
+    <div class="section" id="receivingSection" hidden>
       <p class="section-title label">Message de ton Secret Santa</p>
       <p class="lead" id="receivingLead">—</p>
       <div class="thread" id="receivingThread" hidden>
@@ -193,13 +214,22 @@
 
   var whoLabel = document.getElementById('whoLabel');
   var signOutBtn = document.getElementById('signOutBtn');
+  var updatesList = document.getElementById('updatesList');
 
+  var wantsSantaInput = document.getElementById('wantsSantaInput');
+
+  var santaOptLead = document.getElementById('santaOptLead');
+  var santaOptToggleBtn = document.getElementById('santaOptToggleBtn');
+  var santaOptNote = document.getElementById('santaOptNote');
+
+  var givingSection = document.getElementById('givingSection');
   var givingLead = document.getElementById('givingLead');
   var givingThread = document.getElementById('givingThread');
   var givingLog = document.getElementById('givingLog');
   var givingForm = document.getElementById('givingForm');
   var givingInput = document.getElementById('givingInput');
 
+  var receivingSection = document.getElementById('receivingSection');
   var receivingLead = document.getElementById('receivingLead');
   var receivingThread = document.getElementById('receivingThread');
   var receivingLog = document.getElementById('receivingLog');
@@ -278,12 +308,13 @@
     });
   }
 
-  function createProfile(user, name){
+  function createProfile(user, name, wantsSanta){
     var ref = db.collection('guests').doc(user.uid);
     return ref.set({
       name: name,
       email: user.email,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      wantsSanta: wantsSanta
     }).then(function(){ return ref.get(); }).then(function(snap){ return snap.data(); });
   }
 
@@ -291,7 +322,7 @@
     var name = nameInput.value.trim();
     if(!name){ setNote(nameNote, 'Entre ton prénom et ton nom.', 'bad'); return; }
     saveNameBtn.disabled = true;
-    createProfile(auth.currentUser, name).then(function(profile){
+    createProfile(auth.currentUser, name, !!wantsSantaInput.checked).then(function(profile){
       renderDashboard(auth.currentUser, profile);
     }).catch(function(err){
       setNote(nameNote, 'Erreur : ' + (err.message || err), 'bad');
@@ -324,6 +355,24 @@
     );
   }
 
+  // Prévient l'autre personne du binôme par e-mail qu'un nouveau message
+  // l'attend — jamais son identité, juste "tu as un nouveau message".
+  // Best-effort : une erreur ici n'empêche jamais l'envoi du message lui-même.
+  function notifyNewMessage(pid, myUid){
+    if(!window.APPS_SCRIPT_URL) return;
+    db.collection('pairs').doc(pid).get().then(function(snap){
+      if(!snap.exists) return;
+      var emails = snap.data().emails || {};
+      var otherUid = Object.keys(emails).filter(function(u){ return u !== myUid; })[0];
+      var toEmail = otherUid ? emails[otherUid] : null;
+      if(!toEmail) return;
+      return fetch(window.APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'notifyPairMessage', toEmail: toEmail })
+      });
+    }).catch(function(){ /* notification best-effort : on ignore les erreurs */ });
+  }
+
   function wireSend(formEl, inputEl, pid, myUid){
     formEl.addEventListener('submit', function(e){
       e.preventDefault();
@@ -336,6 +385,7 @@
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(){
         inputEl.value = '';
+        notifyNewMessage(pid, myUid);
       }).catch(function(err){
         window.alert('Message non envoyé : ' + (err.message || err));
       }).finally(function(){
@@ -345,10 +395,72 @@
     });
   }
 
+  // ---- Participation au Secret Santa (choix réversible avant le tirage) ----
+  function applySantaVisibility(wantsSanta){
+    if(wantsSanta){
+      santaOptLead.textContent = 'Tu participes au Secret Santa 🎁';
+      santaOptToggleBtn.textContent = 'Je ne veux plus participer';
+      givingSection.hidden = false;
+      receivingSection.hidden = false;
+    } else {
+      santaOptLead.textContent = 'Tu as choisi de ne pas participer au Secret Santa cette année.';
+      santaOptToggleBtn.textContent = 'Je veux participer finalement';
+      givingSection.hidden = true;
+      receivingSection.hidden = true;
+    }
+  }
+
+  // ---- Annonces ----
+  function loadUpdates(){
+    updatesList.innerHTML = '<p class="empty-note">Chargement...</p>';
+    db.collection('updates').orderBy('createdAt', 'desc').limit(10).get().then(function(qs){
+      if(qs.empty){
+        updatesList.innerHTML = '<p class="empty-note">Pas encore d\'annonce.</p>';
+        return;
+      }
+      var html = '';
+      qs.forEach(function(doc){
+        var d = doc.data();
+        var dateStr = '';
+        if(d.createdAt && d.createdAt.toDate){
+          dateStr = d.createdAt.toDate().toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'});
+        }
+        html += '<div style="margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid var(--line);">' +
+          '<p style="font-family:\'Marcellus\',serif; font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin-bottom:6px;">' +
+            escapeHtml(d.title || '') + (dateStr ? ' · ' + dateStr : '') +
+          '</p>' +
+          '<p style="white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6;">' + escapeHtml(d.body || '') + '</p>' +
+        '</div>';
+      });
+      updatesList.innerHTML = html;
+    }).catch(function(){
+      updatesList.innerHTML = '<p class="empty-note">Impossible de charger les annonces.</p>';
+    });
+  }
+
   // ---- Tableau de bord ----
   function renderDashboard(user, profile){
     whoLabel.textContent = profile.name;
     showCard(dashCard);
+    loadUpdates();
+
+    var currentWantsSanta = profile.wantsSanta !== false;
+    setNote(santaOptNote, '');
+    applySantaVisibility(currentWantsSanta);
+
+    santaOptToggleBtn.onclick = function(){
+      var newValue = !currentWantsSanta;
+      santaOptToggleBtn.disabled = true;
+      db.collection('guests').doc(user.uid).update({ wantsSanta: newValue }).then(function(){
+        currentWantsSanta = newValue;
+        applySantaVisibility(currentWantsSanta);
+        setNote(santaOptNote, newValue ? "Inscrit(e) au Secret Santa !" : 'Tu ne participes plus au Secret Santa.', 'ok');
+      }).catch(function(err){
+        setNote(santaOptNote, 'Erreur : ' + (err.message || err), 'bad');
+      }).finally(function(){
+        santaOptToggleBtn.disabled = false;
+      });
+    };
 
     // -- Tu offres à... --
     if(profile.santaForUid){

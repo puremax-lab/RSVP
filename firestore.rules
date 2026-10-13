@@ -13,7 +13,7 @@ rules_version = '2';
 //  - updates/{updateId}         annonces publiées par les organisateurs, visibles par
 //                                tous les invités connectés (espace membre)
 //
-// Admin = Kisha et Max, identifiés par leur email de connexion (pas de mot de passe
+// Admin = Kisha, Max & Esther, identifiés par leur email de connexion (pas de mot de passe
 // ni de clé séparée à gérer : Firestore vérifie directement l'email authentifié).
 
 service cloud.firestore {
@@ -26,7 +26,8 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && request.auth.token.email in [
         'josepha.tsm@outlook.be',
-        'youtamaxime@gmail.com'
+        'youtamaxime@gmail.com',
+        'adjo93@hotmail.fr'
       ];
     }
 

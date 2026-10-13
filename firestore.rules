@@ -5,7 +5,8 @@ rules_version = '2';
 // Collections :
 //  - guests/{uid}               profil d'un invité connecté (1 doc par compte)
 //  - pairs/{pairId}/messages/*  messages entre les deux personnes d'un binôme Secret Santa
-//                                (pairId = les deux uid triés et joints par "_"). Les emails
+//                                (pairId = "uidOffreur_uidReceveur_idTirage" ; anciens tirages :
+//                                les deux uid triés et joints par "_"). Les emails
 //                                des deux membres ne sont JAMAIS stockés dans Firestore —
 //                                ils vivent uniquement côté serveur (Apps Script), pour que
 //                                la notification "nouveau message" ne transite jamais par le

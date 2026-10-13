@@ -406,8 +406,14 @@
   var EMAIL_KEY = 'cp2_email_for_signin';
   var activeUnsubs = [];
   var currentProfile = null;
-  var wiredGivingPid = null;
-  var wiredReceivingPid = null;
+  var lastSantaKey = null;
+  // Un seul fil actif par emplacement : quand le tirage change (nouveau
+  // tirage ou réinitialisation), l'ancien listener est coupé avant d'écouter
+  // le nouveau fil, pour ne jamais afficher ni écrire dans une ancienne conversation.
+  var threads = {
+    giving: { pid: null, unsub: null },
+    receiving: { pid: null, unsub: null }
+  };
 
   // Pré-remplit l'e-mail si on arrive depuis le RSVP (index.html?...→member.html?email=...),
   // pour éviter de le retaper juste après l'avoir donné une première fois.
@@ -575,8 +581,7 @@
   // section est déjà ouverte au moment où le message arrive.
   function renderThread(logEl, pid, myUid, myLabelWhenMine, theirLabel, opts){
     opts = opts || {};
-    activeUnsubs.push(
-      db.collection('pairs').doc(pid).collection('messages').orderBy('createdAt', 'asc')
+    return db.collection('pairs').doc(pid).collection('messages').orderBy('createdAt', 'asc')
         .onSnapshot(function(qs){
           var latestFromOther = 0;
           if(qs.empty){
@@ -609,8 +614,30 @@
           }
         }, function(err){
           logEl.innerHTML = '<p class="thread-empty">Impossible de charger les messages.</p>';
-        })
-    );
+        });
+  }
+
+  // Branche un emplacement ("giving" / "receiving") sur le fil pid, ou le
+  // vide si pid est null (pas encore de tirage, ou tirage réinitialisé).
+  function setThread(slot, pid, logEl, badgeEl, render){
+    var t = threads[slot];
+    if(t.pid === pid) return;
+    if(t.unsub) t.unsub();
+    t.pid = pid;
+    t.unsub = null;
+    if(!pid){
+      logEl.innerHTML = '';
+      badgeEl.hidden = true;
+      return;
+    }
+    t.unsub = render();
+  }
+
+  function stopThreads(){
+    Object.keys(threads).forEach(function(slot){
+      if(threads[slot].unsub) threads[slot].unsub();
+      threads[slot] = { pid: null, unsub: null };
+    });
   }
 
   // Prévient l'autre personne du binôme par e-mail qu'un nouveau message
@@ -628,14 +655,21 @@
     }).catch(function(){ /* notification best-effort : on ignore les erreurs */ });
   }
 
-  function wireSend(formEl, inputEl, pid, myUid){
+  // Branché une seule fois par formulaire : envoie toujours dans le fil
+  // actuellement actif de l'emplacement, et bloque le double envoi (double tap).
+  function wireSend(formEl, inputEl, slot){
+    var sendBtn = formEl.querySelector('button[type=submit]');
+    var sending = false;
     formEl.addEventListener('submit', function(e){
       e.preventDefault();
+      var pid = threads[slot].pid;
       var text = inputEl.value.trim();
-      if(!text) return;
+      if(!text || !pid || sending || !auth.currentUser) return;
+      sending = true;
       inputEl.disabled = true;
+      sendBtn.disabled = true;
       db.collection('pairs').doc(pid).collection('messages').add({
-        senderUid: myUid,
+        senderUid: auth.currentUser.uid,
         text: text,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(){
@@ -644,15 +678,27 @@
       }).catch(function(err){
         window.alert('Message non envoyé : ' + (err.message || err));
       }).finally(function(){
+        sending = false;
         inputEl.disabled = false;
+        sendBtn.disabled = false;
         inputEl.focus();
       });
     });
   }
+  wireSend(givingForm, givingInput, 'giving');
+  wireSend(receivingForm, receivingInput, 'receiving');
 
   // ---- Secret Santa : la section n'existe que si on a confirmé participer ----
+  // Ce qui, dans le profil, change l'affichage du Secret Santa : sert à ne
+  // re-rendre la section que si le tirage ou la participation a bougé (et pas
+  // à chaque "vu" enregistré).
+  function santaKey(profile){
+    return [profile.wantsSanta === true, profile.santaForUid || '', profile.givingThreadId || '', profile.receivingThreadId || ''].join('|');
+  }
+
   function renderSantaSection(user, profile){
     currentProfile = profile;
+    lastSantaKey = santaKey(profile);
     var wantsSanta = profile.wantsSanta === true;
     santaJoinCard.hidden = wantsSanta;
     santaActiveCard.hidden = !wantsSanta;
@@ -664,40 +710,43 @@
     }
 
     // -- Tu offres à... --
-    if(profile.santaForUid){
-      db.collection('guests').doc(profile.santaForUid).get().then(function(snap){
+    var recipientUid = profile.santaForUid || null;
+    if(recipientUid){
+      // Tirages récents : fil propre au tirage (givingThreadId). Ancien
+      // format (avant cette version) : fil déduit des deux uid.
+      var givingPid = profile.givingThreadId || pairId(user.uid, recipientUid);
+      db.collection('guests').doc(recipientUid).get().then(function(snap){
+        // Le tirage a pu changer pendant le chargement du nom.
+        if(!currentProfile || currentProfile.santaForUid !== recipientUid) return;
         var recipientName = snap.exists ? snap.data().name : 'ton invité(e)';
         givingLead.innerHTML = 'Tu offres un cadeau à <strong>' + escapeHtml(recipientName) + '</strong>. Vous pouvez discuter ici pour avoir des idées (par exemple sa liste de souhaits).';
         givingThread.hidden = false;
-        var pid = pairId(user.uid, profile.santaForUid);
-        // Évite de recréer un deuxième listener en temps réel sur le même fil
-        // si renderSantaSection est appelée plusieurs fois dans la session
-        // (changement d'avis sur la participation, pop-up de bienvenue...).
-        if(wiredGivingPid !== pid){
-          wiredGivingPid = pid;
-          renderThread(givingLog, pid, user.uid, 'Toi', recipientName, {
+        setThread('giving', givingPid, givingLog, givingBadge, function(){
+          return renderThread(givingLog, givingPid, user.uid, 'Toi', recipientName, {
             badgeEl: givingBadge, toggleId: 'givingToggle', lastSeenField: 'givingLastSeenAt'
           });
-          wireSend(givingForm, givingInput, pid, user.uid);
-        }
+        });
       });
     } else {
       givingLead.textContent = 'Le tirage au sort n\'a pas encore eu lieu, reviens un peu plus tard.';
+      givingThread.hidden = true;
+      setThread('giving', null, givingLog, givingBadge);
     }
 
     // -- Message de ton Secret Santa (anonyme) --
-    if(profile.receivingThreadId){
+    var receivingPid = profile.receivingThreadId || null;
+    if(receivingPid){
       receivingLead.textContent = 'Quelqu\'un t\'offre un cadeau en secret. Vous pouvez discuter ici, mais son identité reste cachée jusqu\'au jour J.';
       receivingThread.hidden = false;
-      if(wiredReceivingPid !== profile.receivingThreadId){
-        wiredReceivingPid = profile.receivingThreadId;
-        renderThread(receivingLog, profile.receivingThreadId, user.uid, 'Toi', 'Ton Secret Santa 🎅', {
+      setThread('receiving', receivingPid, receivingLog, receivingBadge, function(){
+        return renderThread(receivingLog, receivingPid, user.uid, 'Toi', 'Ton Secret Santa 🎅', {
           badgeEl: receivingBadge, toggleId: 'receivingToggle', lastSeenField: 'receivingLastSeenAt'
         });
-        wireSend(receivingForm, receivingInput, profile.receivingThreadId, user.uid);
-      }
+      });
     } else {
       receivingLead.textContent = 'Le tirage au sort n\'a pas encore eu lieu.';
+      receivingThread.hidden = true;
+      setThread('receiving', null, receivingLog, receivingBadge);
     }
   }
 
@@ -839,20 +888,33 @@
     loadUpdates();
     renderSantaSection(user, profile);
     maybeShowWelcome(user, profile);
+
+    // Profil suivi en direct : un tirage (ou sa réinitialisation) lancé par
+    // les organisateurs apparaît sans avoir à recharger la page.
+    activeUnsubs.push(db.collection('guests').doc(user.uid).onSnapshot(function(snap){
+      if(!snap.exists) return;
+      var p = snap.data({ serverTimestamps: 'estimate' });
+      currentProfile = p;
+      whoLabel.textContent = p.name;
+      if(santaKey(p) !== lastSantaKey) renderSantaSection(user, p);
+    }, function(){ /* best-effort : l'affichage initial reste valable */ }));
+  }
+
+  function stopAll(){
+    activeUnsubs.forEach(function(u){ u(); });
+    activeUnsubs = [];
+    stopThreads();
+    lastSantaKey = null;
   }
 
   signOutBtn.addEventListener('click', function(){
-    activeUnsubs.forEach(function(u){ u(); });
-    activeUnsubs = [];
+    stopAll();
     auth.signOut();
   });
 
   // ---- État de connexion ----
   auth.onAuthStateChanged(function(user){
-    activeUnsubs.forEach(function(u){ u(); });
-    activeUnsubs = [];
-    wiredGivingPid = null;
-    wiredReceivingPid = null;
+    stopAll();
     currentProfile = null;
 
     if(!user){

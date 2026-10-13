@@ -33,7 +33,11 @@
   input{font-family:inherit;}
   .mono{font-family:'JetBrains Mono', ui-monospace, monospace;}
 
-  .wrap{max-width:980px; margin:0 auto; padding:52px 24px 90px;}
+  .wrap{
+    max-width:980px; margin:0 auto; padding:52px 20px 90px;
+    padding-left:max(20px, env(safe-area-inset-left));
+    padding-right:max(20px, env(safe-area-inset-right));
+  }
   .rule{ width:56px; height:1px; background:var(--gold); opacity:.5; margin:20px auto; }
 
   a.back{ color:var(--ink-dim); text-decoration:none; font-size:.8rem; font-style:italic; }
@@ -60,7 +64,7 @@
   }
   .btn:hover{ background:linear-gradient(180deg, rgba(184,147,79,.26), rgba(184,147,79,.1)); }
   .btn:disabled{ opacity:.5; }
-  .btn.small{ width:auto; margin-top:0; padding:9px 18px; }
+  .btn.small{ width:auto; margin-top:0; padding:10px 18px; white-space:normal; line-height:1.3; }
   .btn.ghost{ background:transparent; }
 
   .dash{display:none;}
@@ -68,8 +72,8 @@
 
   .dash-head{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:34px; }
   .dash-head h1{ font-size:2rem; }
-  .dash-head .sub{ color:var(--ink-dim); font-size:.85rem; font-style:italic; margin-top:4px; }
-  .head-actions{ display:flex; gap:10px; }
+  .dash-head .sub{ color:var(--ink-dim); font-size:.85rem; font-style:italic; margin-top:4px; overflow-wrap:anywhere; word-break:break-word; }
+  .head-actions{ display:flex; flex-wrap:wrap; gap:10px; }
 
   .section{ margin-top:56px; padding-top:38px; border-top:1px solid var(--line); }
   .section:first-of-type{ margin-top:0; padding-top:0; border-top:none; }
@@ -90,7 +94,7 @@
   }
   .toolbar input:focus{ outline:none; border-color:var(--gold); }
 
-  .table-wrap{ border-top:1px solid var(--line); overflow-x:auto; }
+  .table-wrap{ border-top:1px solid var(--line); overflow-x:auto; -webkit-overflow-scrolling:touch; }
   table{ width:100%; border-collapse:collapse; min-width:560px; }
   th, td{ text-align:left; padding:13px 16px 13px 0; font-size:.92rem; border-bottom:1px solid var(--line); white-space:nowrap; }
   th{ font-family:'Marcellus'; text-transform:uppercase; letter-spacing:.1em; font-size:.64rem; color:var(--gold); cursor:pointer; font-weight:400; }
@@ -115,9 +119,9 @@
 
   .key-fix{ border:1px solid var(--bad); border-radius:4px; padding:16px 18px; margin-bottom:24px; }
   .key-fix p{ color:var(--bad); font-size:.86rem; font-style:italic; margin-bottom:12px; }
-  .key-fix .row{ display:flex; gap:10px; }
+  .key-fix .row{ display:flex; flex-wrap:wrap; gap:10px; }
   .key-fix input{
-    flex:1; background:transparent; border:none; border-bottom:1px solid var(--line);
+    flex:1; min-width:140px; background:transparent; border:none; border-bottom:1px solid var(--line);
     padding:8px 2px; color:var(--parchment); font-size:1rem;
   }
   .key-fix input:focus{ outline:none; border-color:var(--gold); }
@@ -127,6 +131,20 @@
   .msg-note.bad{ color:var(--bad); }
 
   #santaDrawBtn{ max-width:320px; margin:22px 0 0; display:block; }
+
+  /* ---- Petits écrans (iPhone SE, anciens Android, ~320-380px) ---- */
+  @media (max-width:380px){
+    .wrap{ padding-left:max(14px, env(safe-area-inset-left)); padding-right:max(14px, env(safe-area-inset-right)); padding-top:36px; }
+    .login-card h1{ font-size:1.42rem; }
+    .login-card p.sub{ font-size:.84rem; }
+    .dash-head h1{ font-size:1.6rem; }
+    .btn{ font-size:.66rem; letter-spacing:.13em; padding:12px 16px; }
+    .btn.small{ font-size:.64rem; padding:10px 14px; }
+    .section-title{ font-size:.6rem; }
+    .section-sub{ font-size:.8rem; }
+    .stat .n{ font-size:1.7rem; }
+    th, td{ padding:11px 12px 11px 0; font-size:.86rem; }
+  }
 </style>
 </head>
 <body>

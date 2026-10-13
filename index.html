@@ -95,11 +95,25 @@
     padding:15px 38px; font-size:.72rem; letter-spacing:.22em; text-transform:uppercase;
     transition:background .25s ease, box-shadow .25s ease, letter-spacing .25s ease;
   }
-  .cta-btn:hover{ background:linear-gradient(180deg, rgba(184,147,79,.28), rgba(184,147,79,.1)); box-shadow:0 0 26px rgba(184,147,79,.22); letter-spacing:.28em; }
+  /* Effet de survol réservé aux écrans avec souris : sur mobile il restait
+     "collé" après un tap et faisait bouger la largeur du bouton. */
+  @media (hover:hover){
+    .cta-btn:hover{ background:linear-gradient(180deg, rgba(184,147,79,.28), rgba(184,147,79,.1)); box-shadow:0 0 26px rgba(184,147,79,.22); letter-spacing:.28em; }
+    .cta-btn.ghost:hover{ box-shadow:none; background:transparent; letter-spacing:.22em; }
+    .cta-btn.secondary:hover{ border-color:var(--gold); background:rgba(184,147,79,.08); box-shadow:none; letter-spacing:.16em; }
+  }
   .cta-btn.full{width:100%;}
   .cta-btn:disabled{ opacity:.55; cursor:default; }
   .cta-btn.ghost{ background:transparent; border-color:transparent; text-decoration:underline; text-underline-offset:5px; }
-  .cta-btn.ghost:hover{ box-shadow:none; background:transparent; letter-spacing:.22em; }
+  .cta-btn.secondary{
+    background:transparent; border-color:var(--line); color:var(--gold-light);
+    font-size:.64rem; letter-spacing:.16em; padding:13px 20px;
+  }
+
+  /* Boutons principaux : même largeur, empilés, faciles à toucher au pouce */
+  .hero-actions{ margin-top:30px; display:flex; flex-direction:column; gap:12px; width:min(100%, 340px); }
+  .hero-actions .cta-btn, .closing .cta-btn{ margin-top:0; width:100%; display:block; text-align:center; text-decoration:none; }
+  .closing .cta-btn{ width:min(100%, 340px); margin:18px auto 0; }
 
   /* ---------- SECTIONS ---------- */
   .section{ margin-top:74px; text-align:center; }
@@ -134,7 +148,7 @@
   footer .member-link:hover{ border-color:var(--gold); background:rgba(184,147,79,.08); }
 
   footer .admin-link{
-    display:block; margin-top:22px; font-family:'Marcellus', serif; letter-spacing:.16em;
+    display:table; margin:14px auto 0; padding:8px 12px; font-family:'Marcellus', serif; letter-spacing:.16em;
     font-size:.62rem; text-transform:uppercase; color:var(--ink-dim); opacity:.5; text-decoration:none;
   }
   footer .admin-link:hover{ opacity:1; color:var(--gold-light); }
@@ -314,7 +328,10 @@
     <p class="date-line label">Samedi 19 Décembre 2026</p>
     <p class="hosts">Kisha <span class="amp">&amp;</span> Esthy</p>
 
-    <button class="cta-btn" data-open-rsvp>Confirmer ma présence</button>
+    <div class="hero-actions">
+      <button class="cta-btn" data-open-rsvp>Confirmer ma présence</button>
+      <a class="cta-btn secondary" href="member.html">Mon espace invité · Secret Santa</a>
+    </div>
   </header>
 
   <section class="section story">

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Espace organisateur — Christmas Party II</title>
+<title>Espace organisateur - Christmas Party II</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -218,7 +218,7 @@
 
       <div class="collapsible-body" id="rsvpBody" hidden>
         <div class="key-fix" id="keyFix" hidden>
-          <p id="keyFixMsg">La clé admin semble incorrecte ou absente — les confirmations ne peuvent pas être chargées.</p>
+          <p id="keyFixMsg">La clé admin semble incorrecte ou absente : les confirmations ne peuvent pas être chargées.</p>
           <div class="row">
             <input type="password" id="keyFixInput" placeholder="Clé admin" autocomplete="off">
             <button class="btn small" id="keyFixBtn">Valider</button>
@@ -470,7 +470,7 @@
   // =====================================================================
   function fetchRows(key){
     if(!configured()){
-      return Promise.reject(new Error('APPS_SCRIPT_URL non configurée — voir README.md'));
+      return Promise.reject(new Error('APPS_SCRIPT_URL non configurée (voir README.md)'));
     }
     return fetch(window.APPS_SCRIPT_URL + '?key=' + encodeURIComponent(key))
       .then(function(r){ return r.json(); })
@@ -570,13 +570,13 @@
     filtered.forEach(function(r){
       var tr = document.createElement('tr');
       var d = r.date ? new Date(r.date) : null;
-      var dateStr = d && !isNaN(d) ? d.toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' + d.toLocaleTimeString('fr-BE', {hour:'2-digit', minute:'2-digit'}) : '—';
+      var dateStr = d && !isNaN(d) ? d.toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' + d.toLocaleTimeString('fr-BE', {hour:'2-digit', minute:'2-digit'}) : '-';
       tr.innerHTML =
         '<td class="mono">' + dateStr + '</td>' +
-        '<td>' + escapeHtml(r.name || '—') + '</td>' +
-        '<td class="mono">' + escapeHtml(r.email || '—') + '</td>' +
-        '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '—') + '</span></td>' +
-        '<td class="msg">' + escapeHtml(r.message || '—') + '</td>' +
+        '<td>' + escapeHtml(r.name || '-') + '</td>' +
+        '<td class="mono">' + escapeHtml(r.email || '-') + '</td>' +
+        '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '-') + '</span></td>' +
+        '<td class="msg">' + escapeHtml(r.message || '-') + '</td>' +
         '<td><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
       tbody.appendChild(tr);
     });
@@ -649,8 +649,8 @@
         var d = doc.data();
         list.push({
           uid: doc.id,
-          name: d.name || '—',
-          email: d.email || '—',
+          name: d.name || '-',
+          email: d.email || '-',
           wantsSanta: d.wantsSanta === true,
           santaForUid: d.santaForUid || null,
           receivingThreadId: d.receivingThreadId || null
@@ -665,12 +665,12 @@
 
   function nameByUid(uid){
     var g = guestsCache.filter(function(x){ return x.uid === uid; })[0];
-    return g ? g.name : '—';
+    return g ? g.name : '-';
   }
 
   function giverNameFor(uid){
     var g = guestsCache.filter(function(x){ return x.santaForUid === uid; })[0];
-    return g ? g.name : '—';
+    return g ? g.name : '-';
   }
 
   function participantsOnly(){
@@ -685,8 +685,8 @@
         '<td>' + escapeHtml(g.name) + '</td>' +
         '<td class="mono">' + escapeHtml(g.email) + '</td>' +
         '<td><span class="status ' + (g.wantsSanta ? 'yes' : 'no') + '">' + (g.wantsSanta ? 'Oui' : 'Non') + '</span></td>' +
-        '<td>' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '—') + '</td>' +
-        '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '—') + '</td>';
+        '<td>' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '-') + '</td>' +
+        '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '-') + '</td>';
       santaTbody.appendChild(tr);
     });
     santaEmptyMsg.style.display = guestsCache.length ? 'none' : 'block';
@@ -798,7 +798,7 @@
       var seen = {};
       guestsCache.forEach(function(g){
         var email = (g.email || '').trim().toLowerCase();
-        if(email && email !== '—' && !seen[email]){ seen[email] = true; recipients.push(email); }
+        if(email && email !== '-' && !seen[email]){ seen[email] = true; recipients.push(email); }
       });
     }
 

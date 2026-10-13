@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Christmas Party II — Kisha &amp; Esthy</title>
+<title>Christmas Party II - Kisha &amp; Esthy</title>
 <meta name="description" content="Invitation et RSVP pour le Christmas Party II de Kisha &amp; Esthy, le 19 décembre 2026.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E%F0%9F%8E%84%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -319,7 +319,7 @@
 
   <section class="section story">
     <p class="section-title label">La suite</p>
-    <p>Vous l'attendiez… ou peut-être pas. Mais une chose est sûre : le Christmas Party revient pour une deuxième édition, et cette année, on voit les choses en grand.</p>
+    <p>Vous l'attendiez... ou peut-être pas. Mais une chose est sûre : le Christmas Party revient pour une deuxième édition, et cette année, on voit les choses en grand.</p>
     <p>Une soirée pour célébrer Noël ensemble : rire, partager un repas, profiter, créer de beaux souvenirs, et surtout célébrer Celui qui est au cœur de cette saison.</p>
     <p class="ps-note">P.S. Cette invitation est personnelle. Merci de ne pas partager ce lien.</p>
   </section>
@@ -375,6 +375,11 @@
       </div>
 
       <div>
+        <label class="field-label label" for="femail">Adresse e-mail</label>
+        <input type="email" id="femail" required placeholder="toi@exemple.com" autocomplete="email">
+      </div>
+
+      <div>
         <label class="field-label label">Vous serez</label>
         <div class="attend-choice">
           <label class="active"><input type="radio" name="attending" value="Présent(e)" checked>Présent(e)</label>
@@ -396,7 +401,9 @@
       <div class="rule"></div>
       <h3>Merci</h3>
       <p>Ta réponse a bien été transmise à Kisha &amp; Esthy.</p>
-      <button class="cta-btn" id="closeThanks">Fermer</button>
+      <p style="margin-top:14px; font-size:.92rem; color:var(--ink-dim);">Dernière étape : crée ton espace invité pour suivre les annonces et le Secret Santa 🎁</p>
+      <button class="cta-btn" id="goToMemberBtn">Créer mon espace invité</button>
+      <button class="cta-btn ghost" id="closeThanks">Plus tard</button>
     </div>
   </div>
 </div>
@@ -490,6 +497,7 @@
   var openBtns = document.querySelectorAll('[data-open-rsvp]');
   var closeBtn = document.getElementById('closeModal');
   var closeThanks = document.getElementById('closeThanks');
+  var goToMemberBtn = document.getElementById('goToMemberBtn');
   var form = document.getElementById('rsvpForm');
   var thanksBox = document.getElementById('thanksBox');
   var submitBtn = document.getElementById('submitBtn');
@@ -522,10 +530,13 @@
   closeThanks.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
 
-  function showThanks(){
+  function showThanks(email){
     form.style.display = 'none';
     thanksBox.classList.add('show');
     modalCard.classList.add('celebrate');
+    goToMemberBtn.onclick = function(){
+      window.location.href = 'member.html?email=' + encodeURIComponent(email || '');
+    };
   }
 
   function showDuplicateError(){
@@ -539,6 +550,7 @@
     e.preventDefault();
     var payload = {
       name: document.getElementById('fname').value.trim(),
+      email: document.getElementById('femail').value.trim(),
       attending: form.querySelector('input[name=attending]:checked').value,
       message: document.getElementById('msg').value.trim()
     };
@@ -551,7 +563,7 @@
     var configured = window.APPS_SCRIPT_URL && window.APPS_SCRIPT_URL.indexOf('COLLEZ_ICI') === -1;
 
     if(!configured){
-      showThanks();
+      showThanks(payload.email);
       return;
     }
 
@@ -562,11 +574,11 @@
           showDuplicateError();
           return;
         }
-        showThanks();
+        showThanks(payload.email);
       })
       .catch(function(err){
         console.warn('Enregistrement admin impossible :', err);
-        showThanks();
+        showThanks(payload.email);
       });
   });
 })();

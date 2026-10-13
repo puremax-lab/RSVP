@@ -172,7 +172,7 @@
 
   form{margin-top:30px; display:flex; flex-direction:column; gap:22px; text-align:left;}
   label.field-label{ font-size:.6rem; color:var(--gold); display:block; margin-bottom:8px; }
-  input[type=text], input[type=number], textarea{
+  input[type=text], input[type=email], input[type=number], textarea{
     width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
     border-radius:0; padding:8px 2px; color:var(--parchment); font-size:1.05rem;
   }
@@ -197,7 +197,7 @@
   .thanks .cta-btn{margin-top:20px;}
 
   /* ---------- INTRO ---------- */
-  body.intro-active{overflow:hidden;}
+  body.intro-active, body.modal-open{overflow:hidden;}
   .intro-overlay{
     position:fixed; inset:0; z-index:200;
     background:radial-gradient(ellipse 110% 65% at 50% 20%, #340c12 0%, var(--bg-0) 65%);
@@ -416,11 +416,13 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var W, H, flakes = [];
 
+  // Le canvas est fixe et couvre l'écran : il doit faire la taille de la
+  // fenêtre (pas de toute la page), sinon les flocons sont écrasés et le
+  // canvas pèse inutilement lourd sur mobile.
   function resize(){
     W = canvas.width = window.innerWidth;
-    H = canvas.height = document.documentElement.scrollHeight;
+    H = canvas.height = window.innerHeight;
   }
-  window.addEventListener('resize', resize);
   resize();
 
   function initParticles(){
@@ -439,7 +441,14 @@
     }
   }
   initParticles();
-  window.addEventListener('resize', initParticles);
+
+  // Sur mobile, la barre d'adresse qui apparaît/disparaît au scroll déclenche
+  // "resize" en continu : on ne redistribue les flocons que si la largeur change.
+  window.addEventListener('resize', function(){
+    var prevW = W;
+    resize();
+    if(W !== prevW) initParticles();
+  });
 
   function draw(){
     ctx.clearRect(0,0,W,H);
@@ -514,6 +523,7 @@
 
   function openModal(){
     overlay.classList.add('open');
+    document.body.classList.add('modal-open');
     form.style.display = 'flex';
     form.reset();
     attendLabels.forEach(function(l,i){ l.classList.toggle('active', i===0); });
@@ -523,7 +533,13 @@
     thanksBox.classList.remove('show');
     modalCard.classList.remove('celebrate');
   }
-  function closeModal(){ overlay.classList.remove('open'); }
+  function closeModal(){
+    overlay.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+  });
 
   openBtns.forEach(function(b){ b.addEventListener('click', openModal); });
   closeBtn.addEventListener('click', closeModal);

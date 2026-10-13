@@ -94,7 +94,7 @@
   .collapsible-body{ margin-top:0; }
 
   .stats{ display:grid; grid-template-columns:repeat(2,1fr); margin-bottom:28px; }
-  @media (min-width:640px){ .stats{grid-template-columns:repeat(4,1fr);} }
+  @media (min-width:640px){ .stats{grid-template-columns:repeat(3,1fr);} }
   .stat{ padding:18px 20px; border-top:1px solid var(--line); }
   @media (min-width:640px){ .stat{ border-top:none; border-left:1px solid var(--line);} .stat:first-child{border-left:none;} }
   .stat .n{ font-size:2.1rem; color:var(--gold-light); line-height:1; }
@@ -143,7 +143,26 @@
   .msg-note.ok{ color:var(--ok); }
   .msg-note.bad{ color:var(--bad); }
 
-  #santaDrawBtn{ max-width:320px; margin:22px 0 0; display:block; }
+  .participants-note{ text-align:center; margin-top:14px; color:var(--ink-dim); font-style:italic; }
+  .santa-actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:22px; }
+  .santa-actions .btn{ margin-top:0; }
+  #santaDrawBtn{ max-width:320px; }
+
+  /* ---- Formulaire d'annonce ---- */
+  #updatesSection .field-label{ display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px; }
+  .update-title{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
+    padding:10px 2px; color:var(--parchment); font-size:1.05rem; margin-bottom:20px;
+  }
+  .update-body{
+    width:100%; background:transparent; border:1px solid var(--line); border-radius:4px;
+    padding:12px; color:var(--parchment); font-size:.98rem; font-family:inherit; resize:vertical;
+  }
+  .update-title:focus, .update-body:focus{ outline:none; border-color:var(--gold); }
+  .check-row{ display:flex; align-items:center; gap:10px; margin-top:16px; cursor:pointer; }
+  .check-row input{ width:auto; accent-color:var(--gold); }
+  .check-row span{ font-size:.88rem; color:var(--ink-dim); }
+  .btn-narrow{ max-width:320px; display:block; }
 
   /* ---- Petits écrans (iPhone SE, anciens Android, ~320-380px) ---- */
   @media (max-width:380px){
@@ -284,11 +303,12 @@
           </table>
           <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
         </div>
-        <p class="sub" id="santaParticipantsNote" style="text-align:center; margin-top:14px; color:var(--ink-dim); font-style:italic;"></p>
+        <p class="participants-note" id="santaParticipantsNote"></p>
 
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+        <div class="santa-actions">
           <button class="btn" id="santaDrawBtn">Lancer le tirage au sort</button>
-          <button class="btn ghost small" id="santaRefreshBtn" style="margin-top:22px;">Rafraîchir</button>
+          <button class="btn ghost small" id="santaResetBtn">Réinitialiser le tirage</button>
+          <button class="btn ghost small" id="santaRefreshBtn">Rafraîchir</button>
         </div>
         <p class="msg-note" id="santaDrawNote"></p>
       </div>
@@ -299,20 +319,18 @@
       <p class="section-title label">📣 Annonces</p>
       <p class="section-sub">Publie une mise à jour dans l'espace invité, et envoie-la en même temps par e-mail à tous ceux qui ont déjà un compte.</p>
 
-      <label class="label" for="updateTitleInput" style="display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px;">Titre</label>
-      <input type="text" id="updateTitleInput" placeholder="Ex. Participation de 40 € demandée"
-        style="width:100%; background:transparent; border:none; border-bottom:1px solid var(--line); padding:10px 2px; color:var(--parchment); font-size:1.05rem; margin-bottom:20px;">
+      <label class="label field-label" for="updateTitleInput">Titre</label>
+      <input type="text" class="update-title" id="updateTitleInput" placeholder="Ex. Participation de 40 € demandée">
 
-      <label class="label" for="updateBodyInput" style="display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px;">Message</label>
-      <textarea id="updateBodyInput" rows="7" placeholder="Écris l'annonce ici..."
-        style="width:100%; background:transparent; border:1px solid var(--line); border-radius:4px; padding:12px; color:var(--parchment); font-size:.98rem; font-family:inherit; resize:vertical;"></textarea>
+      <label class="label field-label" for="updateBodyInput">Message</label>
+      <textarea class="update-body" id="updateBodyInput" rows="7" placeholder="Écris l'annonce ici..."></textarea>
 
-      <label style="display:flex; align-items:center; gap:10px; margin-top:16px; cursor:pointer;">
-        <input type="checkbox" id="updateEmailToggle" checked style="width:auto;">
-        <span style="font-size:.88rem; color:var(--ink-dim);">Envoyer aussi par e-mail à tous les invités ayant un compte</span>
+      <label class="check-row">
+        <input type="checkbox" id="updateEmailToggle" checked>
+        <span>Envoyer aussi par e-mail à tous les invités ayant un compte</span>
       </label>
 
-      <button class="btn" id="updatePublishBtn" style="max-width:320px; display:block;">Publier l'annonce</button>
+      <button class="btn btn-narrow" id="updatePublishBtn">Publier l'annonce</button>
       <p class="msg-note" id="updateNote"></p>
     </div>
   </div>
@@ -356,6 +374,7 @@
   var santaEmptyMsg = document.getElementById('santaEmptyMsg');
   var santaDrawBtn = document.getElementById('santaDrawBtn');
   var santaDrawNote = document.getElementById('santaDrawNote');
+  var santaResetBtn = document.getElementById('santaResetBtn');
 
   var updateTitleInput = document.getElementById('updateTitleInput');
   var updateBodyInput = document.getElementById('updateBodyInput');
@@ -385,7 +404,12 @@
     el.className = 'msg-note' + (kind ? ' ' + kind : '');
   }
 
-  function pairId(a, b){ return [a, b].sort().join('_'); }
+  // Fil de discussion d'un binôme pour un tirage donné : "offreur_receveur_tirage".
+  // Chaque tirage a son propre identifiant, donc relancer (ou réinitialiser
+  // puis relancer) ouvre des conversations vierges : les messages d'un
+  // tirage précédent ne réapparaissent jamais, même si le binôme se reforme.
+  // Les règles Firestore n'utilisent que les deux premiers segments (les uid).
+  function threadId(giverUid, recipientUid, drawId){ return giverUid + '_' + recipientUid + '_' + drawId; }
 
   // Section repliable (chevron) : repliée par défaut, aucune donnée n'est
   // masquée côté serveur — seul l'affichage change (les données continuent
@@ -494,7 +518,7 @@
       rsvpContent.hidden = true;
       return;
     }
-    fetchRows(key).then(function(data){
+    return fetchRows(key).then(function(data){
       rows = data;
       keyFix.hidden = true;
       rsvpContent.hidden = false;
@@ -513,9 +537,10 @@
     setAdminKey(key);
     keyFixBtn.disabled = true;
     keyFixBtn.textContent = '...';
-    loadRsvp();
-    keyFixBtn.disabled = false;
-    keyFixBtn.textContent = 'Valider';
+    Promise.resolve(loadRsvp()).finally(function(){
+      keyFixBtn.disabled = false;
+      keyFixBtn.textContent = 'Valider';
+    });
   });
 
   function startPolling(){
@@ -556,7 +581,8 @@
   function renderRows(){
     var q = search.value.trim().toLowerCase();
     var filtered = rows.filter(function(r){
-      return !q || String(r.name||'').toLowerCase().indexOf(q) !== -1;
+      return !q || String(r.name||'').toLowerCase().indexOf(q) !== -1
+                || String(r.email||'').toLowerCase().indexOf(q) !== -1;
     });
 
     filtered.sort(function(a,b){
@@ -653,6 +679,7 @@
           email: d.email || '-',
           wantsSanta: d.wantsSanta === true,
           santaForUid: d.santaForUid || null,
+          givingThreadId: d.givingThreadId || null,
           receivingThreadId: d.receivingThreadId || null
         });
       });
@@ -722,6 +749,41 @@
     });
   }
 
+  function hasAssignment(g){
+    return !!(g.santaForUid || g.givingThreadId || g.receivingThreadId);
+  }
+
+  function clearAssignmentPatch(){
+    var del = firebase.firestore.FieldValue.delete();
+    return { santaForUid: del, givingThreadId: del, receivingThreadId: del };
+  }
+
+  // ---- Réinitialisation : efface tous les binômes (retour à l'état d'avant tirage) ----
+  santaResetBtn.addEventListener('click', function(){
+    var assigned = guestsCache.filter(hasAssignment);
+    if(!assigned.length){
+      setNote(santaDrawNote, "Aucun tirage à réinitialiser.", 'bad');
+      return;
+    }
+    if(!window.confirm('Réinitialiser le tirage ? Les ' + assigned.length + ' binôme(s) actuels seront effacés et les conversations de ce tirage ne seront plus visibles. Les inscriptions au Secret Santa sont conservées.')) return;
+
+    santaResetBtn.disabled = true;
+    santaDrawBtn.disabled = true;
+    var batch = db.batch();
+    assigned.forEach(function(g){
+      batch.update(db.collection('guests').doc(g.uid), clearAssignmentPatch());
+    });
+    batch.commit().then(function(){
+      setNote(santaDrawNote, 'Tirage réinitialisé. Tu peux relancer un nouveau tirage quand tu veux.', 'ok');
+      return loadGuests();
+    }).catch(function(err){
+      setNote(santaDrawNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      santaResetBtn.disabled = false;
+      santaDrawBtn.disabled = false;
+    });
+  });
+
   // ---- Tirage au sort (dérangement : décalage circulaire sur une liste mélangée) ----
   function computeDraw(guests){
     var n = guests.length;
@@ -755,17 +817,31 @@
     santaDrawBtn.textContent = 'Tirage en cours...';
 
     var assignments = computeDraw(participants);
-    var batch = db.batch();
+    var drawId = Date.now().toString(36);
+    var patches = {};
     var pairEmailRows = [];
     assignments.forEach(function(a){
-      var pid = pairId(a.giver.uid, a.recipient.uid);
-      batch.update(db.collection('guests').doc(a.giver.uid), { santaForUid: a.recipient.uid });
-      batch.update(db.collection('guests').doc(a.recipient.uid), { receivingThreadId: pid });
+      var pid = threadId(a.giver.uid, a.recipient.uid, drawId);
+      patches[a.giver.uid] = patches[a.giver.uid] || {};
+      patches[a.giver.uid].santaForUid = a.recipient.uid;
+      patches[a.giver.uid].givingThreadId = pid;
+      patches[a.recipient.uid] = patches[a.recipient.uid] || {};
+      patches[a.recipient.uid].receivingThreadId = pid;
 
       // Les emails du binôme ne vont JAMAIS dans Firestore (un invité pourrait
       // les lire via les outils développeur). Ils sont envoyés au backend Apps
       // Script juste en dessous, qui seul s'en sert pour router les notifications.
       pairEmailRows.push({ pairId: pid, emailA: a.giver.email, emailB: a.recipient.email });
+    });
+
+    // Les inscrits qui ne participent plus perdent leur ancien binôme.
+    guestsCache.forEach(function(g){
+      if(!g.wantsSanta && hasAssignment(g)) patches[g.uid] = clearAssignmentPatch();
+    });
+
+    var batch = db.batch();
+    Object.keys(patches).forEach(function(uid){
+      batch.update(db.collection('guests').doc(uid), patches[uid]);
     });
 
     batch.commit().then(function(){

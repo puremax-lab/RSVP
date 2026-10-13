@@ -84,12 +84,16 @@ function doPost(e) {
       return jsonOut_({ ok: false, duplicate: true });
     }
 
+    // Email ajouté en 6e colonne (jamais inséré au milieu) pour ne pas décaler
+    // les lignes déjà existantes dans la feuille, dont le format d'origine
+    // n'avait pas cette colonne.
     sheet.appendRow([
       new Date(),
       name,
       String(data.attending || '').slice(0, 50),
       Number(data.guests) || 1,
-      String(data.message || '').slice(0, 1000)
+      String(data.message || '').slice(0, 1000),
+      String(data.email || '').trim().toLowerCase().slice(0, 200)
     ]);
     return jsonOut_({ ok: true });
   } catch (err) {
@@ -120,7 +124,7 @@ function deleteRow_(sheet, dateKey) {
 }
 
 function sendUpdate_(subject, body, recipients) {
-  subject = String(subject || 'Christmas Party II — mise à jour').trim().slice(0, 150);
+  subject = String(subject || 'Christmas Party II : mise à jour').trim().slice(0, 150);
   body = String(body || '').trim();
   if (!body) return { ok: false, error: 'empty_body' };
 
@@ -238,7 +242,7 @@ function notifyPairMessage_(pairId, senderEmail) {
   try {
     MailApp.sendEmail({
       to: target,
-      subject: 'Nouveau message — Christmas Party II 🎁',
+      subject: 'Nouveau message - Christmas Party II 🎁',
       body: 'Tu as reçu un nouveau message dans ton espace Secret Santa.\n\n' +
             'Connecte-toi pour le lire : ' + MEMBER_URL,
       name: 'Christmas Party II'
@@ -265,7 +269,8 @@ function doGet(e) {
       name: row[1],
       attending: row[2],
       guests: row[3],
-      message: row[4]
+      message: row[4],
+      email: row[5] || ''
     });
   }
   return jsonOut_(out);
@@ -276,7 +281,7 @@ function getSheet_() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['Date', 'Nom', 'Présence', 'Invités', 'Message']);
+    sheet.appendRow(['Date', 'Nom', 'Présence', 'Invités', 'Message', 'Email']);
     sheet.setFrozenRows(1);
   }
   return sheet;

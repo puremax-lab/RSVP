@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E%F0%9F%8E%84%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Marcellus&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Marcellus&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg-0:#0a0504; --bg-1:#170907;
@@ -33,6 +33,7 @@
   button{font-family:inherit; cursor:pointer;}
   input,textarea{font-family:inherit;}
   p{margin:0; line-height:1.6;}
+  .mono{font-family:'JetBrains Mono', ui-monospace, monospace;}
 
   .wrap{max-width:560px; margin:0 auto; padding:52px 24px 90px;}
   .rule{ width:56px; height:1px; background:var(--gold); opacity:.5; margin:20px auto; }
@@ -75,10 +76,19 @@
   .top-bar .who{ font-style:italic; color:var(--gold-light); font-size:1.05rem; }
 
   .section{ margin-top:40px; padding-top:30px; border-top:1px solid var(--line); }
-  .section-title{ font-size:.64rem; color:var(--gold); margin-bottom:16px; }
+  .section-title{ font-size:.64rem; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
   .section p.lead{ font-size:1.1rem; color:var(--ink); }
   .section p.lead strong{ color:var(--gold-light); font-weight:500; }
   .empty-note{ color:var(--ink-dim); font-style:italic; font-size:.9rem; }
+
+  .announce-item{ margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+  .announce-item:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .announce-item .announce-head{ font-family:'Marcellus',serif; font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:7px; }
+  .announce-item .announce-body{ white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6; }
+  .pin-badge{ color:var(--gold-light); }
+
+  .santa-card{ border:1px solid var(--line); border-radius:6px; padding:20px 20px 22px; text-align:center; }
+  .santa-card p.lead{ font-size:1.02rem; }
 
   .thread{ margin-top:18px; }
   .thread-log{
@@ -100,6 +110,41 @@
   .thread-form button{ flex-shrink:0; }
 
   .foot-note{ margin-top:46px; font-size:.78rem; color:var(--ink-dim); text-align:center; font-style:italic; }
+
+  /* ---- Pop-up de bienvenue ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(5,2,1,.82); backdrop-filter:blur(2px);
+    display:flex; align-items:flex-start; justify-content:center; padding:5vh 18px; z-index:50;
+    overflow-y:auto;
+  }
+  .modal-card{
+    max-width:480px; width:100%; background:linear-gradient(180deg, #1c0e0a, #130806);
+    border:1px solid var(--line); border-radius:8px; padding:36px 28px 32px; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal-card .rule{ margin:22px auto; }
+  .modal-kicker{ font-size:.6rem; color:var(--gold); margin-bottom:10px; }
+  .modal-title{ font-size:1.4rem; color:var(--gold-light); line-height:1.3; }
+  .modal-sub{ color:var(--ink-dim); font-style:italic; font-size:.92rem; margin-top:10px; }
+  .modal-meta{ margin:18px 0; font-size:.98rem; color:var(--parchment); display:flex; flex-direction:column; gap:4px; }
+  .modal-text{ font-size:.96rem; color:var(--ink); margin-top:12px; line-height:1.6; text-align:left; }
+  .modal-sign{ margin-top:18px; font-style:italic; color:var(--ink-dim); font-size:.92rem; }
+
+  .pay-box{ margin-top:22px; border:1px solid var(--gold); border-radius:6px; padding:18px 18px 20px; background:rgba(184,147,79,.07); }
+  .pay-box .pay-amount{ font-size:1.5rem; color:var(--gold-light); }
+  .pay-box .pay-deadline{ color:var(--ink-dim); font-style:italic; font-size:.88rem; margin-top:4px; }
+  .pay-box .pay-iban{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--line); }
+  .pay-box .pay-iban .label{ font-size:.58rem; color:var(--gold); display:block; margin-bottom:8px; }
+  .pay-box .pay-iban p.mono{ font-size:1.02rem; color:var(--parchment); letter-spacing:.03em; }
+  .pay-box .pay-name{ color:var(--ink-dim); font-size:.86rem; margin-top:4px; }
+  .pay-box .pay-warning{ color:var(--bad); font-style:italic; font-size:.84rem; margin-top:16px; }
+
+  .modal-actions{ margin-top:24px; display:flex; flex-direction:column; gap:10px; }
+
+  @media (min-width:480px){
+    .modal-actions{ flex-direction:row; }
+    .modal-actions .btn{ margin-top:0; }
+  }
 </style>
 </head>
 <body>
@@ -119,7 +164,7 @@
   <div class="card" id="loginCard">
     <div class="rule"></div>
     <h1>Espace invité</h1>
-    <p class="sub">Entre l'adresse e-mail que tu as utilisée pour confirmer ta présence. On t'envoie un lien de connexion, pas de mot de passe à retenir.</p>
+    <p class="sub">Crée ton espace personnel avec ton e-mail. On t'envoie un lien de connexion, pas de mot de passe à retenir.</p>
     <div style="margin-top:26px;">
       <label class="field-label label" for="emailInput">Adresse e-mail</label>
       <input type="email" id="emailInput" placeholder="toi@exemple.com" autocomplete="email">
@@ -137,12 +182,6 @@
       <label class="field-label label" for="nameInput">Prénom &amp; nom</label>
       <input type="text" id="nameInput" placeholder="Marie Dupont">
     </div>
-    <div style="margin-top:26px; text-align:left; border:1px solid var(--line); border-radius:4px; padding:16px 18px;">
-      <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
-        <input type="checkbox" id="wantsSantaInput" style="margin-top:4px; width:auto;">
-        <span style="font-size:.92rem; line-height:1.5;">Je souhaite participer au Secret Santa 🎁 <span style="display:block; color:var(--ink-dim); font-style:italic; font-size:.82rem; margin-top:3px;">Tu pourras toujours changer d'avis plus tard, avant le tirage au sort.</span></span>
-      </label>
-    </div>
     <button class="btn" id="saveNameBtn">Continuer</button>
     <p class="msg-note" id="nameNote"></p>
   </div>
@@ -155,42 +194,98 @@
     </div>
 
     <div id="updatesSection">
-      <p class="section-title label">Annonces</p>
+      <p class="section-title label">📣 Annonces</p>
       <div id="updatesList"></div>
     </div>
 
-    <div class="section" id="santaOptSection">
-      <p class="section-title label">Secret Santa — participation</p>
-      <p class="lead" id="santaOptLead">—</p>
-      <button class="btn ghost small" id="santaOptToggleBtn" style="margin-top:14px;"></button>
-      <p class="msg-note" id="santaOptNote"></p>
-    </div>
+    <div class="section" id="santaSection">
+      <p class="section-title label">🎅 Secret Santa</p>
 
-    <div class="section" id="givingSection" hidden>
-      <p class="section-title label">Ton Secret Santa — tu offres à</p>
-      <p class="lead" id="givingLead">—</p>
-      <div class="thread" id="givingThread" hidden>
-        <div class="thread-log" id="givingLog"></div>
-        <form class="thread-form" id="givingForm">
-          <textarea id="givingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
-          <button type="submit" class="btn small">Envoyer</button>
-        </form>
+      <div class="santa-card" id="santaJoinCard" hidden>
+        <p class="lead" id="santaJoinLead">Tu ne participes pas au Secret Santa cette année.</p>
+        <button class="btn small" id="santaJoinBtn" style="margin-top:16px;">🎁 Je veux participer</button>
+      </div>
+
+      <div id="santaActiveCard" hidden>
+        <div id="givingThread2">
+          <p class="label" style="font-size:.6rem; color:var(--gold); margin-bottom:10px;">Tu offres à</p>
+          <p class="lead" id="givingLead">—</p>
+          <div class="thread" id="givingThread" hidden>
+            <div class="thread-log" id="givingLog"></div>
+            <form class="thread-form" id="givingForm">
+              <textarea id="givingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
+              <button type="submit" class="btn small">Envoyer</button>
+            </form>
+          </div>
+        </div>
+
+        <div style="margin-top:30px;">
+          <p class="label" style="font-size:.6rem; color:var(--gold); margin-bottom:10px;">Message de ton Secret Santa</p>
+          <p class="lead" id="receivingLead">—</p>
+          <div class="thread" id="receivingThread" hidden>
+            <div class="thread-log" id="receivingLog"></div>
+            <form class="thread-form" id="receivingForm">
+              <textarea id="receivingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
+              <button type="submit" class="btn small">Envoyer</button>
+            </form>
+          </div>
+        </div>
+
+        <p class="foot-note" style="margin-top:28px;">Ces échanges restent strictement privés entre vous deux — même les organisateurs n'y ont pas accès.</p>
+        <p style="text-align:center; margin-top:18px;">
+          <button class="btn ghost small" id="santaLeaveBtn">Je ne veux plus participer</button>
+        </p>
+        <p class="msg-note" id="santaOptNote"></p>
       </div>
     </div>
+  </div>
+</div>
 
-    <div class="section" id="receivingSection" hidden>
-      <p class="section-title label">Message de ton Secret Santa</p>
-      <p class="lead" id="receivingLead">—</p>
-      <div class="thread" id="receivingThread" hidden>
-        <div class="thread-log" id="receivingLog"></div>
-        <form class="thread-form" id="receivingForm">
-          <textarea id="receivingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
-          <button type="submit" class="btn small">Envoyer</button>
-        </form>
-      </div>
+<!-- ---------- POP-UP DE BIENVENUE (une seule fois, jusqu'à réponse) ---------- -->
+<div class="modal-overlay" id="welcomeModal" hidden>
+  <div class="modal-card">
+    <p class="modal-kicker label">Christmas Party II</p>
+    <h1 class="modal-title">One step closer to Christmas… 🎄✨</h1>
+    <p class="modal-sub">Vous avez confirmé votre présence… maintenant, place à la suite. 👀</p>
+
+    <div class="modal-meta">
+      <p>📅 Samedi 19 décembre 2026</p>
+      <p>🕡 18h30</p>
+      <p>📍 Le lieu vous sera dévoilé prochainement…</p>
     </div>
 
-    <p class="foot-note">Ces échanges restent strictement privés entre vous deux — même les organisateurs n'y ont pas accès.</p>
+    <p class="modal-text">Cette année, on a vraiment voulu voir les choses plus grand pour vous préparer une Christmas Party encore plus belle, chaleureuse et mémorable. 🤍</p>
+    <p class="modal-text">Pour nous permettre d'organiser tout ça dans les meilleures conditions, une participation de 40&nbsp;€ par personne est demandée.</p>
+    <p class="modal-text">Cette participation nous permet de couvrir une partie des frais liés à la soirée : location de la salle, repas, décoration, matériel et animations.</p>
+    <p class="modal-text">En bref : vous n'avez rien à organiser. Vous venez, vous profitez… on s'occupe du reste. 🎁</p>
+    <p class="modal-text">Votre place sera définitivement confirmée dès réception de votre participation.</p>
+
+    <div class="pay-box">
+      <p class="pay-amount">40 € / personne</p>
+      <p class="pay-deadline">À verser au plus tard le 6 novembre 2026</p>
+      <div class="pay-iban">
+        <span class="label">Je confirme ma place — 40 €</span>
+        <p class="mono">FR76 2823 3000 0121 9109 2493 512</p>
+        <p class="pay-name">DEWU ESTHER</p>
+        <button class="btn ghost small" id="copyIbanBtn" type="button" style="margin-top:12px;">Copier l'IBAN</button>
+      </div>
+      <p class="pay-warning">Passé le 6 novembre, nous ne pourrons plus garantir votre place pour la Christmas Party II.</p>
+    </div>
+
+    <p class="modal-text">Plus d'infos arrivent bientôt… 👀🎄</p>
+    <p class="modal-sign">With love,<br>Kisha &amp; Esthy 🤍</p>
+
+    <div class="rule"></div>
+
+    <p class="modal-kicker label">🎅 Secret Santa</p>
+    <p class="modal-text">Et comme si la soirée n'était pas déjà assez magique… cette année, on organise aussi un Secret Santa ! Chacun(e) offre un petit cadeau surprise à une personne tirée au sort — dans l'anonymat total jusqu'au jour J.</p>
+    <p class="modal-text" style="font-style:italic; color:var(--gold-light);">Tu veux participer ?</p>
+
+    <div class="modal-actions">
+      <button class="btn" id="welcomeSantaYesBtn" type="button">🎁 Oui, je participe</button>
+      <button class="btn ghost" id="welcomeSantaNoBtn" type="button">Non, pas cette année</button>
+    </div>
+    <p class="msg-note" id="welcomeNote"></p>
   </div>
 </div>
 
@@ -216,28 +311,44 @@
   var signOutBtn = document.getElementById('signOutBtn');
   var updatesList = document.getElementById('updatesList');
 
-  var wantsSantaInput = document.getElementById('wantsSantaInput');
-
-  var santaOptLead = document.getElementById('santaOptLead');
-  var santaOptToggleBtn = document.getElementById('santaOptToggleBtn');
+  var santaJoinCard = document.getElementById('santaJoinCard');
+  var santaJoinLead = document.getElementById('santaJoinLead');
+  var santaJoinBtn = document.getElementById('santaJoinBtn');
+  var santaActiveCard = document.getElementById('santaActiveCard');
+  var santaLeaveBtn = document.getElementById('santaLeaveBtn');
   var santaOptNote = document.getElementById('santaOptNote');
 
-  var givingSection = document.getElementById('givingSection');
   var givingLead = document.getElementById('givingLead');
   var givingThread = document.getElementById('givingThread');
   var givingLog = document.getElementById('givingLog');
   var givingForm = document.getElementById('givingForm');
   var givingInput = document.getElementById('givingInput');
 
-  var receivingSection = document.getElementById('receivingSection');
   var receivingLead = document.getElementById('receivingLead');
   var receivingThread = document.getElementById('receivingThread');
   var receivingLog = document.getElementById('receivingLog');
   var receivingForm = document.getElementById('receivingForm');
   var receivingInput = document.getElementById('receivingInput');
 
+  var welcomeModal = document.getElementById('welcomeModal');
+  var welcomeSantaYesBtn = document.getElementById('welcomeSantaYesBtn');
+  var welcomeSantaNoBtn = document.getElementById('welcomeSantaNoBtn');
+  var welcomeNote = document.getElementById('welcomeNote');
+  var copyIbanBtn = document.getElementById('copyIbanBtn');
+
   var EMAIL_KEY = 'cp2_email_for_signin';
   var activeUnsubs = [];
+
+  // Message fixe (identique pour tout le monde) : affiché une fois en pop-up,
+  // puis conservé en permanence comme première annonce de l'espace membre.
+  var PINNED_ANNOUNCEMENT = {
+    title: 'Participation — 40 € par personne',
+    body: 'Une participation de 40 € par personne est demandée pour la Christmas Party II (salle, repas, décoration, animations).\n\n' +
+          'À verser au plus tard le 6 novembre 2026.\n' +
+          'Bénéficiaire : DEWU ESTHER\n' +
+          'IBAN : FR76 2823 3000 0121 9109 2493 512\n\n' +
+          'Passé cette date, la place n\'est plus garantie.'
+  };
 
   function showCard(card){
     [loginCard, nameCard, dashCard].forEach(function(c){ c.hidden = (c !== card); });
@@ -308,13 +419,14 @@
     });
   }
 
-  function createProfile(user, name, wantsSanta){
+  function createProfile(user, name){
     var ref = db.collection('guests').doc(user.uid);
     return ref.set({
       name: name,
       email: user.email,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      wantsSanta: wantsSanta
+      wantsSanta: false,
+      onboarded: false
     }).then(function(){ return ref.get(); }).then(function(snap){ return snap.data(); });
   }
 
@@ -322,7 +434,7 @@
     var name = nameInput.value.trim();
     if(!name){ setNote(nameNote, 'Entre ton prénom et ton nom.', 'bad'); return; }
     saveNameBtn.disabled = true;
-    createProfile(auth.currentUser, name, !!wantsSantaInput.checked).then(function(profile){
+    createProfile(auth.currentUser, name).then(function(profile){
       renderDashboard(auth.currentUser, profile);
     }).catch(function(err){
       setNote(nameNote, 'Erreur : ' + (err.message || err), 'bad');
@@ -392,72 +504,17 @@
     });
   }
 
-  // ---- Participation au Secret Santa (choix réversible avant le tirage) ----
-  function applySantaVisibility(wantsSanta){
-    if(wantsSanta){
-      santaOptLead.textContent = 'Tu participes au Secret Santa 🎁';
-      santaOptToggleBtn.textContent = 'Je ne veux plus participer';
-      givingSection.hidden = false;
-      receivingSection.hidden = false;
-    } else {
-      santaOptLead.textContent = 'Tu as choisi de ne pas participer au Secret Santa cette année.';
-      santaOptToggleBtn.textContent = 'Je veux participer finalement';
-      givingSection.hidden = true;
-      receivingSection.hidden = true;
-    }
-  }
-
-  // ---- Annonces ----
-  function loadUpdates(){
-    updatesList.innerHTML = '<p class="empty-note">Chargement...</p>';
-    db.collection('updates').orderBy('createdAt', 'desc').limit(10).get().then(function(qs){
-      if(qs.empty){
-        updatesList.innerHTML = '<p class="empty-note">Pas encore d\'annonce.</p>';
-        return;
-      }
-      var html = '';
-      qs.forEach(function(doc){
-        var d = doc.data();
-        var dateStr = '';
-        if(d.createdAt && d.createdAt.toDate){
-          dateStr = d.createdAt.toDate().toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'});
-        }
-        html += '<div style="margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid var(--line);">' +
-          '<p style="font-family:\'Marcellus\',serif; font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin-bottom:6px;">' +
-            escapeHtml(d.title || '') + (dateStr ? ' · ' + dateStr : '') +
-          '</p>' +
-          '<p style="white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6;">' + escapeHtml(d.body || '') + '</p>' +
-        '</div>';
-      });
-      updatesList.innerHTML = html;
-    }).catch(function(){
-      updatesList.innerHTML = '<p class="empty-note">Impossible de charger les annonces.</p>';
-    });
-  }
-
-  // ---- Tableau de bord ----
-  function renderDashboard(user, profile){
-    whoLabel.textContent = profile.name;
-    showCard(dashCard);
-    loadUpdates();
-
-    var currentWantsSanta = profile.wantsSanta !== false;
+  // ---- Secret Santa : la section n'existe que si on a confirmé participer ----
+  function renderSantaSection(user, profile){
+    var wantsSanta = profile.wantsSanta === true;
+    santaJoinCard.hidden = wantsSanta;
+    santaActiveCard.hidden = !wantsSanta;
     setNote(santaOptNote, '');
-    applySantaVisibility(currentWantsSanta);
 
-    santaOptToggleBtn.onclick = function(){
-      var newValue = !currentWantsSanta;
-      santaOptToggleBtn.disabled = true;
-      db.collection('guests').doc(user.uid).update({ wantsSanta: newValue }).then(function(){
-        currentWantsSanta = newValue;
-        applySantaVisibility(currentWantsSanta);
-        setNote(santaOptNote, newValue ? "Inscrit(e) au Secret Santa !" : 'Tu ne participes plus au Secret Santa.', 'ok');
-      }).catch(function(err){
-        setNote(santaOptNote, 'Erreur : ' + (err.message || err), 'bad');
-      }).finally(function(){
-        santaOptToggleBtn.disabled = false;
-      });
-    };
+    if(!wantsSanta){
+      santaJoinLead.textContent = 'Tu ne participes pas au Secret Santa cette année.';
+      return;
+    }
 
     // -- Tu offres à... --
     if(profile.santaForUid){
@@ -482,6 +539,120 @@
     } else {
       receivingLead.textContent = 'Le tirage au sort n\'a pas encore eu lieu.';
     }
+  }
+
+  function setWantsSanta(user, value){
+    return db.collection('guests').doc(user.uid).update({ wantsSanta: value });
+  }
+
+  santaJoinBtn.addEventListener('click', function(){
+    santaJoinBtn.disabled = true;
+    setWantsSanta(auth.currentUser, true).then(function(){
+      return db.collection('guests').doc(auth.currentUser.uid).get();
+    }).then(function(snap){
+      renderSantaSection(auth.currentUser, snap.data());
+    }).catch(function(err){
+      setNote(santaOptNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      santaJoinBtn.disabled = false;
+    });
+  });
+
+  santaLeaveBtn.addEventListener('click', function(){
+    santaLeaveBtn.disabled = true;
+    setWantsSanta(auth.currentUser, false).then(function(){
+      return db.collection('guests').doc(auth.currentUser.uid).get();
+    }).then(function(snap){
+      renderSantaSection(auth.currentUser, snap.data());
+      setNote(santaOptNote, 'Tu ne participes plus au Secret Santa.', 'ok');
+    }).catch(function(err){
+      setNote(santaOptNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      santaLeaveBtn.disabled = false;
+    });
+  });
+
+  // ---- Annonces (le message fixe de bienvenue reste épinglé en premier) ----
+  function renderPinnedAnnouncement(){
+    return '<div class="announce-item">' +
+      '<p class="announce-head"><span class="pin-badge">📌</span>' + escapeHtml(PINNED_ANNOUNCEMENT.title) + '</p>' +
+      '<p class="announce-body">' + escapeHtml(PINNED_ANNOUNCEMENT.body) + '</p>' +
+    '</div>';
+  }
+
+  function loadUpdates(){
+    updatesList.innerHTML = renderPinnedAnnouncement() + '<p class="empty-note">Chargement...</p>';
+    db.collection('updates').orderBy('createdAt', 'desc').limit(10).get().then(function(qs){
+      var html = renderPinnedAnnouncement();
+      if(qs.empty){
+        updatesList.innerHTML = html;
+        return;
+      }
+      qs.forEach(function(doc){
+        var d = doc.data();
+        var dateStr = '';
+        if(d.createdAt && d.createdAt.toDate){
+          dateStr = d.createdAt.toDate().toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'});
+        }
+        html += '<div class="announce-item">' +
+          '<p class="announce-head">' + escapeHtml(d.title || '') + (dateStr ? ' · ' + dateStr : '') + '</p>' +
+          '<p class="announce-body">' + escapeHtml(d.body || '') + '</p>' +
+        '</div>';
+      });
+      updatesList.innerHTML = html;
+    }).catch(function(){
+      updatesList.innerHTML = renderPinnedAnnouncement() + '<p class="empty-note">Impossible de charger les annonces.</p>';
+    });
+  }
+
+  // ---- Pop-up de bienvenue (une seule fois, jusqu'à réponse) ----
+  function maybeShowWelcome(user, profile){
+    if(profile.onboarded === true){
+      welcomeModal.hidden = true;
+      return;
+    }
+    welcomeModal.hidden = false;
+
+    function answer(wantsSanta){
+      welcomeSantaYesBtn.disabled = true;
+      welcomeSantaNoBtn.disabled = true;
+      db.collection('guests').doc(user.uid).update({ wantsSanta: wantsSanta, onboarded: true }).then(function(){
+        welcomeModal.hidden = true;
+        return db.collection('guests').doc(user.uid).get();
+      }).then(function(snap){
+        renderSantaSection(user, snap.data());
+      }).catch(function(err){
+        setNote(welcomeNote, 'Erreur : ' + (err.message || err), 'bad');
+      }).finally(function(){
+        welcomeSantaYesBtn.disabled = false;
+        welcomeSantaNoBtn.disabled = false;
+      });
+    }
+
+    welcomeSantaYesBtn.onclick = function(){ answer(true); };
+    welcomeSantaNoBtn.onclick = function(){ answer(false); };
+  }
+
+  copyIbanBtn.addEventListener('click', function(){
+    var iban = 'FR7628233000012191092493512';
+    (navigator.clipboard && navigator.clipboard.writeText
+      ? navigator.clipboard.writeText(iban)
+      : Promise.reject()
+    ).then(function(){
+      copyIbanBtn.textContent = 'Copié !';
+      setTimeout(function(){ copyIbanBtn.textContent = "Copier l'IBAN"; }, 1800);
+    }).catch(function(){
+      copyIbanBtn.textContent = 'IBAN : ' + iban;
+    });
+  });
+
+  // ---- Tableau de bord ----
+  function renderDashboard(user, profile){
+    whoLabel.textContent = profile.name;
+    showCard(dashCard);
+    loadUpdates();
+    renderSantaSection(user, profile);
+    maybeShowWelcome(user, profile);
   }
 
   signOutBtn.addEventListener('click', function(){

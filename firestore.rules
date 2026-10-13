@@ -50,22 +50,24 @@ service cloud.firestore {
 
       // Création du profil : uniquement par la personne elle-même, avec son
       // propre email authentifié, et seulement les champs attendus (pas de
-      // santaForUid auto-assigné). wantsSanta = choix explicite de participer
-      // ou non au Secret Santa, fait à l'inscription.
+      // santaForUid auto-assigné). wantsSanta démarre à false : le choix de
+      // participer ou non au Secret Santa se fait dans la pop-up de bienvenue,
+      // juste après la création du compte (onboarded passe alors à true).
       allow create: if isSignedIn() && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['name', 'email', 'createdAt', 'wantsSanta'])
+                    && request.resource.data.keys().hasOnly(['name', 'email', 'createdAt', 'wantsSanta', 'onboarded'])
                     && request.resource.data.email == request.auth.token.email
                     && request.resource.data.name is string
                     && request.resource.data.name.size() > 0
-                    && request.resource.data.wantsSanta is bool;
+                    && request.resource.data.wantsSanta == false
+                    && request.resource.data.onboarded == false;
 
-      // Mise à jour : l'invité peut changer son propre nom et son choix de
-      // participation au Secret Santa (il peut changer d'avis avant le tirage).
-      // Le tirage au sort (santaForUid / receivingThreadId) n'est modifiable
-      // que par un admin.
+      // Mise à jour : l'invité peut changer son propre nom, son choix de
+      // participation au Secret Santa (il peut changer d'avis avant le tirage)
+      // et répondre à la pop-up de bienvenue (onboarded). Le tirage au sort
+      // (santaForUid / receivingThreadId) n'est modifiable que par un admin.
       allow update: if isAdmin()
                     || (isSignedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta']));
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded']));
 
       allow delete: if isAdmin();
     }

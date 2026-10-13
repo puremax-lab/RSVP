@@ -608,6 +608,26 @@
     loadGuests().finally(function(){ santaRefreshBtn.textContent = 'Rafraîchir'; });
   });
 
+  // Envoie les emails des binômes au backend Apps Script (table cachée,
+  // jamais lisible depuis Firestore). Best-effort : si la clé admin RSVP
+  // n'est pas déverrouillée ou que l'envoi échoue, le tirage reste valide
+  // sur le site — seules les notifications par e-mail des messages ne
+  // fonctionneront pas tant que ce n'est pas corrigé.
+  function registerPairEmailsOnBackend_(pairEmailRows){
+    var adminKey = window.sessionStorage.getItem('cp2_admin_key') || '';
+    if(!adminKey){
+      return Promise.resolve("Déverrouille aussi le tableau de bord RSVP en haut (clé admin) puis relance le tirage pour activer les notifications de message par e-mail.");
+    }
+    return fetch(window.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'registerPairEmails', key: adminKey, pairs: pairEmailRows })
+    }).then(function(r){ return r.json(); }).then(function(data){
+      return (data && data.ok) ? '' : "Les notifications de message par e-mail n'ont pas pu être activées (" + ((data && data.error) || 'erreur inconnue') + ").";
+    }).catch(function(){
+      return "Les notifications de message par e-mail n'ont pas pu être activées (problème réseau).";
+    });
+  }
+
   // ---- Tirage au sort (dérangement : décalage circulaire sur une liste mélangée) ----
   function computeDraw(guests){
     var n = guests.length;
@@ -642,22 +662,22 @@
 
     var assignments = computeDraw(participants);
     var batch = db.batch();
+    var pairEmailRows = [];
     assignments.forEach(function(a){
       var pid = pairId(a.giver.uid, a.recipient.uid);
       batch.update(db.collection('guests').doc(a.giver.uid), { santaForUid: a.recipient.uid });
       batch.update(db.collection('guests').doc(a.recipient.uid), { receivingThreadId: pid });
 
-      // En-tête du binôme (juste les deux emails) : permet au site de savoir
-      // où envoyer la notification "nouveau message", sans jamais révéler les
-      // noms entre les deux personnes.
-      var emails = {};
-      emails[a.giver.uid] = a.giver.email;
-      emails[a.recipient.uid] = a.recipient.email;
-      batch.set(db.collection('pairs').doc(pid), { emails: emails });
+      // Les emails du binôme ne vont JAMAIS dans Firestore (un invité pourrait
+      // les lire via les outils développeur). Ils sont envoyés au backend Apps
+      // Script juste en dessous, qui seul s'en sert pour router les notifications.
+      pairEmailRows.push({ pairId: pid, emailA: a.giver.email, emailB: a.recipient.email });
     });
 
     batch.commit().then(function(){
-      setNote(santaDrawNote, 'Tirage effectué ! Les binômes ont été attribués.', 'ok');
+      return registerPairEmailsOnBackend_(pairEmailRows);
+    }).then(function(backendNote){
+      setNote(santaDrawNote, 'Tirage effectué ! Les binômes ont été attribués.' + (backendNote ? ' ' + backendNote : ''), 'ok');
       return loadGuests();
     }).catch(function(err){
       setNote(santaDrawNote, 'Erreur : ' + (err.message || err), 'bad');

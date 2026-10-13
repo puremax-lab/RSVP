@@ -85,6 +85,25 @@
   .section p.lead strong{ color:var(--gold-light); font-weight:500; }
   .empty-note{ color:var(--ink-dim); font-style:italic; font-size:.9rem; }
 
+  /* ---- Sections repliables (chevron) + badge "non lu" ---- */
+  .collapsible-toggle{
+    width:100%; background:none; border:none; padding:0; margin:0;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    text-align:left; -webkit-tap-highlight-color:transparent;
+  }
+  .collapsible-toggle .toggle-label{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; overflow-wrap:anywhere; }
+  .collapsible-toggle .chevron{
+    flex-shrink:0; color:var(--gold-dim); font-size:.95em; transition:transform .2s ease; display:inline-block;
+  }
+  .collapsible-toggle[aria-expanded="true"] .chevron{ transform:rotate(180deg); }
+  .collapsible-body{ margin-top:16px; }
+  .unread-badge{
+    display:inline-block; flex-shrink:0; background:var(--bad); color:#2a0505;
+    font-family:'Marcellus', serif; font-size:.54rem; letter-spacing:.06em; text-transform:uppercase;
+    padding:3px 9px; border-radius:20px; line-height:1.4;
+  }
+  .giving-toggle, .receiving-toggle{ margin-bottom:0; }
+
   .announce-item{ margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid var(--line); }
   .announce-item:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
   .announce-item .announce-head{ font-family:'Marcellus',serif; font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:7px; }
@@ -158,6 +177,7 @@
     .btn{ font-size:.66rem; letter-spacing:.13em; padding:12px 16px; }
     .btn.small{ font-size:.64rem; padding:10px 14px; }
     .section-title{ font-size:.6rem; }
+    .unread-badge{ font-size:.5rem; padding:2px 7px; }
     .modal-overlay{ padding:4vh 10px; }
     .modal-card{ padding:26px 18px 24px; }
     .modal-title{ font-size:1.22rem; }
@@ -223,8 +243,13 @@
     </div>
 
     <div id="updatesSection">
-      <p class="section-title label">📣 Annonces</p>
-      <div id="updatesList"></div>
+      <button type="button" class="section-title label collapsible-toggle" id="updatesToggle" aria-expanded="false">
+        <span class="toggle-label">📣 Annonces <span class="unread-badge" id="updatesBadge" hidden>Nouveau</span></span>
+        <span class="chevron">▾</span>
+      </button>
+      <div class="collapsible-body" id="updatesBody" hidden>
+        <div id="updatesList"></div>
+      </div>
     </div>
 
     <div class="section" id="santaSection">
@@ -237,26 +262,36 @@
 
       <div id="santaActiveCard" hidden>
         <div id="givingThread2">
-          <p class="label" style="font-size:.6rem; color:var(--gold); margin-bottom:10px;">Tu offres à</p>
-          <p class="lead" id="givingLead">—</p>
-          <div class="thread" id="givingThread" hidden>
-            <div class="thread-log" id="givingLog"></div>
-            <form class="thread-form" id="givingForm">
-              <textarea id="givingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
-              <button type="submit" class="btn small">Envoyer</button>
-            </form>
+          <button type="button" class="section-title label collapsible-toggle giving-toggle" id="givingToggle" aria-expanded="false" style="font-size:.6rem;">
+            <span class="toggle-label">Tu offres à <span class="unread-badge" id="givingBadge" hidden>Nouveau</span></span>
+            <span class="chevron">▾</span>
+          </button>
+          <div class="collapsible-body" id="givingBody" hidden>
+            <p class="lead" id="givingLead">—</p>
+            <div class="thread" id="givingThread" hidden>
+              <div class="thread-log" id="givingLog"></div>
+              <form class="thread-form" id="givingForm">
+                <textarea id="givingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
+                <button type="submit" class="btn small">Envoyer</button>
+              </form>
+            </div>
           </div>
         </div>
 
         <div style="margin-top:30px;">
-          <p class="label" style="font-size:.6rem; color:var(--gold); margin-bottom:10px;">Message de ton Secret Santa</p>
-          <p class="lead" id="receivingLead">—</p>
-          <div class="thread" id="receivingThread" hidden>
-            <div class="thread-log" id="receivingLog"></div>
-            <form class="thread-form" id="receivingForm">
-              <textarea id="receivingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
-              <button type="submit" class="btn small">Envoyer</button>
-            </form>
+          <button type="button" class="section-title label collapsible-toggle receiving-toggle" id="receivingToggle" aria-expanded="false" style="font-size:.6rem;">
+            <span class="toggle-label">Message de ton Secret Santa <span class="unread-badge" id="receivingBadge" hidden>Nouveau</span></span>
+            <span class="chevron">▾</span>
+          </button>
+          <div class="collapsible-body" id="receivingBody" hidden>
+            <p class="lead" id="receivingLead">—</p>
+            <div class="thread" id="receivingThread" hidden>
+              <div class="thread-log" id="receivingLog"></div>
+              <form class="thread-form" id="receivingForm">
+                <textarea id="receivingInput" placeholder="Écrire un message..." maxlength="1800"></textarea>
+                <button type="submit" class="btn small">Envoyer</button>
+              </form>
+            </div>
           </div>
         </div>
 
@@ -339,6 +374,7 @@
   var whoLabel = document.getElementById('whoLabel');
   var signOutBtn = document.getElementById('signOutBtn');
   var updatesList = document.getElementById('updatesList');
+  var updatesBadge = document.getElementById('updatesBadge');
 
   var santaJoinCard = document.getElementById('santaJoinCard');
   var santaJoinLead = document.getElementById('santaJoinLead');
@@ -352,12 +388,14 @@
   var givingLog = document.getElementById('givingLog');
   var givingForm = document.getElementById('givingForm');
   var givingInput = document.getElementById('givingInput');
+  var givingBadge = document.getElementById('givingBadge');
 
   var receivingLead = document.getElementById('receivingLead');
   var receivingThread = document.getElementById('receivingThread');
   var receivingLog = document.getElementById('receivingLog');
   var receivingForm = document.getElementById('receivingForm');
   var receivingInput = document.getElementById('receivingInput');
+  var receivingBadge = document.getElementById('receivingBadge');
 
   var welcomeModal = document.getElementById('welcomeModal');
   var welcomeSantaYesBtn = document.getElementById('welcomeSantaYesBtn');
@@ -367,6 +405,18 @@
 
   var EMAIL_KEY = 'cp2_email_for_signin';
   var activeUnsubs = [];
+  var currentProfile = null;
+  var wiredGivingPid = null;
+  var wiredReceivingPid = null;
+
+  // Pré-remplit l'e-mail si on arrive depuis le RSVP (index.html?...→member.html?email=...),
+  // pour éviter de le retaper juste après l'avoir donné une première fois.
+  (function prefillEmailFromQuery(){
+    try{
+      var qEmail = new URLSearchParams(window.location.search).get('email');
+      if(qEmail) emailInput.value = qEmail;
+    }catch(e){ /* navigateur très ancien sans URLSearchParams : on ignore */ }
+  })();
 
   // Message fixe (identique pour tout le monde) : affiché une fois en pop-up,
   // puis conservé en permanence comme première annonce de l'espace membre.
@@ -394,6 +444,53 @@
     return String(s).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
+  }
+
+  // ---- Sections repliables (chevron) + badge "non lu" ----
+  // Convertit un timestamp Firestore (ou une Date locale posée en attendant
+  // la confirmation serveur) en millisecondes, pour pouvoir comparer "dernière
+  // visite" et "dernier message/annonce" sans se soucier du type exact.
+  function toMillis(ts){
+    if(!ts) return 0;
+    if(typeof ts.toMillis === 'function') return ts.toMillis();
+    if(typeof ts.toDate === 'function') return ts.toDate().getTime();
+    if(ts instanceof Date) return ts.getTime();
+    return 0;
+  }
+
+  function isToggleOpen(toggleId){
+    var t = document.getElementById(toggleId);
+    return !!t && t.getAttribute('aria-expanded') === 'true';
+  }
+
+  // Ouvre/ferme une section repliable. onOpen (facultatif) ne se déclenche
+  // qu'à l'ouverture — utilisé ici pour effacer le badge "non lu" et marquer
+  // le contenu comme vu dès que l'invité déplie la section.
+  function wireCollapsible(toggleId, bodyId, onOpen){
+    var toggle = document.getElementById(toggleId);
+    var body = document.getElementById(bodyId);
+    toggle.addEventListener('click', function(){
+      var next = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(next));
+      body.hidden = !next;
+      if(next && typeof onOpen === 'function') onOpen();
+    });
+  }
+
+  // Enregistre côté serveur la date de dernière consultation d'une section
+  // (best-effort, aucune donnée sensible : ne sert qu'à afficher un badge).
+  function markSeen(uid, field){
+    var patch = {};
+    patch[field] = firebase.firestore.FieldValue.serverTimestamp();
+    db.collection('guests').doc(uid).update(patch).catch(function(){ /* best-effort */ });
+  }
+
+  // Idem, mais met aussi à jour la copie locale du profil tout de suite
+  // (avant que le serveur ait confirmé), pour que le badge ne réapparaisse
+  // pas si la section est re-rendue dans la même session.
+  function markSeenLocal(field){
+    if(currentProfile) currentProfile[field] = new Date();
+    if(auth.currentUser) markSeen(auth.currentUser.uid, field);
   }
 
   // ---- Étape 1 : envoyer le lien magique ----
@@ -472,24 +569,44 @@
   });
 
   // ---- Fil de discussion ----
-  function renderThread(logEl, pid, myUid, myLabelWhenMine, theirLabel){
+  // opts (facultatif) : { badgeEl, toggleId, lastSeenField } — permet d'afficher
+  // un badge "Nouveau" quand l'autre personne a écrit depuis la dernière visite
+  // (jamais pour ses propres messages), et de l'effacer automatiquement si la
+  // section est déjà ouverte au moment où le message arrive.
+  function renderThread(logEl, pid, myUid, myLabelWhenMine, theirLabel, opts){
+    opts = opts || {};
     activeUnsubs.push(
       db.collection('pairs').doc(pid).collection('messages').orderBy('createdAt', 'asc')
         .onSnapshot(function(qs){
+          var latestFromOther = 0;
           if(qs.empty){
             logEl.innerHTML = '<p class="thread-empty">Pas encore de message.</p>';
-            return;
+          } else {
+            var html = '';
+            qs.forEach(function(doc){
+              var m = doc.data();
+              var mine = m.senderUid === myUid;
+              if(!mine){
+                var ms = toMillis(m.createdAt);
+                if(ms > latestFromOther) latestFromOther = ms;
+              }
+              html += '<div class="bubble ' + (mine ? 'mine' : 'theirs') + '">' +
+                '<span class="who">' + (mine ? myLabelWhenMine : theirLabel) + '</span>' +
+                escapeHtml(m.text) + '</div>';
+            });
+            logEl.innerHTML = html;
+            logEl.scrollTop = logEl.scrollHeight;
           }
-          var html = '';
-          qs.forEach(function(doc){
-            var m = doc.data();
-            var mine = m.senderUid === myUid;
-            html += '<div class="bubble ' + (mine ? 'mine' : 'theirs') + '">' +
-              '<span class="who">' + (mine ? myLabelWhenMine : theirLabel) + '</span>' +
-              escapeHtml(m.text) + '</div>';
-          });
-          logEl.innerHTML = html;
-          logEl.scrollTop = logEl.scrollHeight;
+
+          if(opts.badgeEl){
+            if(opts.toggleId && isToggleOpen(opts.toggleId)){
+              opts.badgeEl.hidden = true;
+              if(latestFromOther > 0 && opts.lastSeenField) markSeenLocal(opts.lastSeenField);
+            } else {
+              var seenMillis = toMillis(currentProfile && currentProfile[opts.lastSeenField]);
+              opts.badgeEl.hidden = !(latestFromOther > seenMillis);
+            }
+          }
         }, function(err){
           logEl.innerHTML = '<p class="thread-empty">Impossible de charger les messages.</p>';
         })
@@ -535,6 +652,7 @@
 
   // ---- Secret Santa : la section n'existe que si on a confirmé participer ----
   function renderSantaSection(user, profile){
+    currentProfile = profile;
     var wantsSanta = profile.wantsSanta === true;
     santaJoinCard.hidden = wantsSanta;
     santaActiveCard.hidden = !wantsSanta;
@@ -552,8 +670,16 @@
         givingLead.innerHTML = 'Tu offres un cadeau à <strong>' + escapeHtml(recipientName) + '</strong>. Vous pouvez discuter ici pour avoir des idées (par exemple sa liste de souhaits).';
         givingThread.hidden = false;
         var pid = pairId(user.uid, profile.santaForUid);
-        renderThread(givingLog, pid, user.uid, 'Toi', recipientName);
-        wireSend(givingForm, givingInput, pid, user.uid);
+        // Évite de recréer un deuxième listener en temps réel sur le même fil
+        // si renderSantaSection est appelée plusieurs fois dans la session
+        // (changement d'avis sur la participation, pop-up de bienvenue...).
+        if(wiredGivingPid !== pid){
+          wiredGivingPid = pid;
+          renderThread(givingLog, pid, user.uid, 'Toi', recipientName, {
+            badgeEl: givingBadge, toggleId: 'givingToggle', lastSeenField: 'givingLastSeenAt'
+          });
+          wireSend(givingForm, givingInput, pid, user.uid);
+        }
       });
     } else {
       givingLead.textContent = 'Le tirage au sort n\'a pas encore eu lieu — reviens un peu plus tard.';
@@ -563,8 +689,13 @@
     if(profile.receivingThreadId){
       receivingLead.textContent = 'Quelqu\'un t\'offre un cadeau en secret. Vous pouvez discuter ici, mais son identité reste cachée jusqu\'au jour J.';
       receivingThread.hidden = false;
-      renderThread(receivingLog, profile.receivingThreadId, user.uid, 'Toi', 'Ton Secret Santa 🎅');
-      wireSend(receivingForm, receivingInput, profile.receivingThreadId, user.uid);
+      if(wiredReceivingPid !== profile.receivingThreadId){
+        wiredReceivingPid = profile.receivingThreadId;
+        renderThread(receivingLog, profile.receivingThreadId, user.uid, 'Toi', 'Ton Secret Santa 🎅', {
+          badgeEl: receivingBadge, toggleId: 'receivingToggle', lastSeenField: 'receivingLastSeenAt'
+        });
+        wireSend(receivingForm, receivingInput, profile.receivingThreadId, user.uid);
+      }
     } else {
       receivingLead.textContent = 'Le tirage au sort n\'a pas encore eu lieu.';
     }
@@ -613,22 +744,33 @@
     updatesList.innerHTML = renderPinnedAnnouncement() + '<p class="empty-note">Chargement...</p>';
     db.collection('updates').orderBy('createdAt', 'desc').limit(10).get().then(function(qs){
       var html = renderPinnedAnnouncement();
+      var latestMillis = 0;
       if(qs.empty){
         updatesList.innerHTML = html;
-        return;
+      } else {
+        qs.forEach(function(doc){
+          var d = doc.data();
+          var ms = toMillis(d.createdAt);
+          if(ms > latestMillis) latestMillis = ms;
+          var dateStr = '';
+          if(d.createdAt && d.createdAt.toDate){
+            dateStr = d.createdAt.toDate().toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'});
+          }
+          html += '<div class="announce-item">' +
+            '<p class="announce-head">' + escapeHtml(d.title || '') + (dateStr ? ' · ' + dateStr : '') + '</p>' +
+            '<p class="announce-body">' + escapeHtml(d.body || '') + '</p>' +
+          '</div>';
+        });
+        updatesList.innerHTML = html;
       }
-      qs.forEach(function(doc){
-        var d = doc.data();
-        var dateStr = '';
-        if(d.createdAt && d.createdAt.toDate){
-          dateStr = d.createdAt.toDate().toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'});
-        }
-        html += '<div class="announce-item">' +
-          '<p class="announce-head">' + escapeHtml(d.title || '') + (dateStr ? ' · ' + dateStr : '') + '</p>' +
-          '<p class="announce-body">' + escapeHtml(d.body || '') + '</p>' +
-        '</div>';
-      });
-      updatesList.innerHTML = html;
+      // Badge "Nouveau" : annonce publiée après la dernière visite de cette
+      // section (le message épinglé, toujours identique, ne compte jamais).
+      if(isToggleOpen('updatesToggle')){
+        updatesBadge.hidden = true;
+      } else {
+        var seenMillis = toMillis(currentProfile && currentProfile.lastSeenUpdatesAt);
+        updatesBadge.hidden = !(latestMillis > seenMillis);
+      }
     }).catch(function(){
       updatesList.innerHTML = renderPinnedAnnouncement() + '<p class="empty-note">Impossible de charger les annonces.</p>';
     });
@@ -675,8 +817,23 @@
     });
   });
 
+  // ---- Sections repliables : repliées par défaut, badge effacé à l'ouverture ----
+  wireCollapsible('updatesToggle', 'updatesBody', function(){
+    updatesBadge.hidden = true;
+    markSeenLocal('lastSeenUpdatesAt');
+  });
+  wireCollapsible('givingToggle', 'givingBody', function(){
+    givingBadge.hidden = true;
+    markSeenLocal('givingLastSeenAt');
+  });
+  wireCollapsible('receivingToggle', 'receivingBody', function(){
+    receivingBadge.hidden = true;
+    markSeenLocal('receivingLastSeenAt');
+  });
+
   // ---- Tableau de bord ----
   function renderDashboard(user, profile){
+    currentProfile = profile;
     whoLabel.textContent = profile.name;
     showCard(dashCard);
     loadUpdates();
@@ -694,6 +851,9 @@
   auth.onAuthStateChanged(function(user){
     activeUnsubs.forEach(function(u){ u(); });
     activeUnsubs = [];
+    wiredGivingPid = null;
+    wiredReceivingPid = null;
+    currentProfile = null;
 
     if(!user){
       showCard(loginCard);

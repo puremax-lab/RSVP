@@ -63,12 +63,15 @@ service cloud.firestore {
                     && request.resource.data.onboarded == false;
 
       // Mise à jour : l'invité peut changer son propre nom, son choix de
-      // participation au Secret Santa (il peut changer d'avis avant le tirage)
-      // et répondre à la pop-up de bienvenue (onboarded). Le tirage au sort
-      // (santaForUid / receivingThreadId) n'est modifiable que par un admin.
+      // participation au Secret Santa (il peut changer d'avis avant le tirage),
+      // répondre à la pop-up de bienvenue (onboarded), et marquer les annonces /
+      // messages comme vus (lastSeenUpdatesAt, givingLastSeenAt,
+      // receivingLastSeenAt — utilisés uniquement pour afficher un badge "nouveau"
+      // côté client, aucune donnée sensible). Le tirage au sort (santaForUid /
+      // receivingThreadId) n'est modifiable que par un admin.
       allow update: if isAdmin()
                     || (isSignedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded']));
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded', 'lastSeenUpdatesAt', 'givingLastSeenAt', 'receivingLastSeenAt']));
 
       allow delete: if isAdmin();
     }

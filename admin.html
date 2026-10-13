@@ -80,6 +80,19 @@
   .section-title{ font-size:.68rem; color:var(--gold); margin-bottom:20px; display:flex; align-items:center; gap:9px; }
   .section-sub{ color:var(--ink-dim); font-size:.85rem; font-style:italic; margin-bottom:22px; }
 
+  /* ---- Sections repliables (chevron) ---- */
+  .collapsible-toggle{
+    width:100%; background:none; border:none; padding:0; margin:0 0 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    text-align:left; -webkit-tap-highlight-color:transparent;
+  }
+  .collapsible-toggle .toggle-label{ display:flex; align-items:center; gap:9px; flex:1; min-width:0; overflow-wrap:anywhere; }
+  .collapsible-toggle .chevron{
+    flex-shrink:0; color:var(--gold-dim); font-size:.95em; transition:transform .2s ease; display:inline-block;
+  }
+  .collapsible-toggle[aria-expanded="true"] .chevron{ transform:rotate(180deg); }
+  .collapsible-body{ margin-top:0; }
+
   .stats{ display:grid; grid-template-columns:repeat(2,1fr); margin-bottom:28px; }
   @media (min-width:640px){ .stats{grid-template-columns:repeat(4,1fr);} }
   .stat{ padding:18px 20px; border-top:1px solid var(--line); }
@@ -95,7 +108,7 @@
   .toolbar input:focus{ outline:none; border-color:var(--gold); }
 
   .table-wrap{ border-top:1px solid var(--line); overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  table{ width:100%; border-collapse:collapse; min-width:560px; }
+  table{ width:100%; border-collapse:collapse; min-width:680px; }
   th, td{ text-align:left; padding:13px 16px 13px 0; font-size:.92rem; border-bottom:1px solid var(--line); white-space:nowrap; }
   th{ font-family:'Marcellus'; text-transform:uppercase; letter-spacing:.1em; font-size:.64rem; color:var(--gold); cursor:pointer; font-weight:400; }
   th:hover{ color:var(--gold-light); }
@@ -197,77 +210,88 @@
 
     <!-- ---- Confirmations (RSVP) ---- -->
     <div class="section" id="rsvpSection">
-      <p class="section-title label">📋 Confirmations</p>
+      <button type="button" class="section-title label collapsible-toggle" id="rsvpToggle" aria-expanded="false">
+        <span class="toggle-label">📋 Confirmations</span>
+        <span class="chevron">▾</span>
+      </button>
       <p class="section-sub">Mis à jour en direct depuis la feuille Google Sheets.</p>
 
-      <div class="key-fix" id="keyFix" hidden>
-        <p id="keyFixMsg">La clé admin semble incorrecte ou absente — les confirmations ne peuvent pas être chargées.</p>
-        <div class="row">
-          <input type="password" id="keyFixInput" placeholder="Clé admin" autocomplete="off">
-          <button class="btn small" id="keyFixBtn">Valider</button>
-        </div>
-      </div>
-
-      <div id="rsvpContent" hidden>
-        <div class="dash-head" style="margin-bottom:22px;">
-          <div></div>
-          <div class="head-actions">
-            <button class="btn ghost small" id="exportBtn">Exporter en CSV</button>
-            <button class="btn ghost small" id="refreshBtn">Rafraîchir</button>
+      <div class="collapsible-body" id="rsvpBody" hidden>
+        <div class="key-fix" id="keyFix" hidden>
+          <p id="keyFixMsg">La clé admin semble incorrecte ou absente — les confirmations ne peuvent pas être chargées.</p>
+          <div class="row">
+            <input type="password" id="keyFixInput" placeholder="Clé admin" autocomplete="off">
+            <button class="btn small" id="keyFixBtn">Valider</button>
           </div>
         </div>
 
-        <div class="stats">
-          <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Réponses</div></div>
-          <div class="stat"><div class="n" id="statYes">0</div><div class="l">Présent(e)s</div></div>
-          <div class="stat"><div class="n" id="statNo">0</div><div class="l">Absent(e)s</div></div>
-        </div>
+        <div id="rsvpContent" hidden>
+          <div class="dash-head" style="margin-bottom:22px;">
+            <div></div>
+            <div class="head-actions">
+              <button class="btn ghost small" id="exportBtn">Exporter en CSV</button>
+              <button class="btn ghost small" id="refreshBtn">Rafraîchir</button>
+            </div>
+          </div>
 
-        <div class="toolbar">
-          <input type="search" id="search" placeholder="Rechercher un nom...">
-        </div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Réponses</div></div>
+            <div class="stat"><div class="n" id="statYes">0</div><div class="l">Présent(e)s</div></div>
+            <div class="stat"><div class="n" id="statNo">0</div><div class="l">Absent(e)s</div></div>
+          </div>
 
-        <div class="table-wrap">
-          <table id="table">
-            <thead>
-              <tr>
-                <th data-key="date">Date</th>
-                <th data-key="name">Nom</th>
-                <th data-key="attending">Présence</th>
-                <th data-key="message">Message</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
-          <p class="empty" id="emptyMsg" style="display:none;">Aucune réponse pour l'instant.</p>
-        </div>
+          <div class="toolbar">
+            <input type="search" id="search" placeholder="Rechercher un nom...">
+          </div>
 
-        <p class="foot-note">Rafraîchissement automatique toutes les 30 secondes.</p>
+          <div class="table-wrap">
+            <table id="table">
+              <thead>
+                <tr>
+                  <th data-key="date">Date</th>
+                  <th data-key="name">Nom</th>
+                  <th data-key="email">E-mail</th>
+                  <th data-key="attending">Présence</th>
+                  <th data-key="message">Message</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+            <p class="empty" id="emptyMsg" style="display:none;">Aucune réponse pour l'instant.</p>
+          </div>
+
+          <p class="foot-note">Rafraîchissement automatique toutes les 30 secondes.</p>
+        </div>
       </div>
     </div>
 
     <!-- ---- Secret Santa ---- -->
     <div class="section" id="santaSection">
-      <p class="section-title label">🎅 Secret Santa</p>
+      <button type="button" class="section-title label collapsible-toggle" id="santaToggle" aria-expanded="false">
+        <span class="toggle-label">🎅 Secret Santa</span>
+        <span class="chevron">▾</span>
+      </button>
       <p class="section-sub">Le tirage attribue un binôme à chaque invité(e) ayant choisi de participer.</p>
 
-      <div class="table-wrap">
-        <table id="santaTable">
-          <thead>
-            <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th></tr>
-          </thead>
-          <tbody id="santaTbody"></tbody>
-        </table>
-        <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
-      </div>
-      <p class="sub" id="santaParticipantsNote" style="text-align:center; margin-top:14px; color:var(--ink-dim); font-style:italic;"></p>
+      <div class="collapsible-body" id="santaBody" hidden>
+        <div class="table-wrap">
+          <table id="santaTable">
+            <thead>
+              <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th></tr>
+            </thead>
+            <tbody id="santaTbody"></tbody>
+          </table>
+          <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
+        </div>
+        <p class="sub" id="santaParticipantsNote" style="text-align:center; margin-top:14px; color:var(--ink-dim); font-style:italic;"></p>
 
-      <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-        <button class="btn" id="santaDrawBtn">Lancer le tirage au sort</button>
-        <button class="btn ghost small" id="santaRefreshBtn" style="margin-top:22px;">Rafraîchir</button>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <button class="btn" id="santaDrawBtn">Lancer le tirage au sort</button>
+          <button class="btn ghost small" id="santaRefreshBtn" style="margin-top:22px;">Rafraîchir</button>
+        </div>
+        <p class="msg-note" id="santaDrawNote"></p>
       </div>
-      <p class="msg-note" id="santaDrawNote"></p>
     </div>
 
     <!-- ---- Annonces ---- -->
@@ -362,6 +386,21 @@
   }
 
   function pairId(a, b){ return [a, b].sort().join('_'); }
+
+  // Section repliable (chevron) : repliée par défaut, aucune donnée n'est
+  // masquée côté serveur — seul l'affichage change (les données continuent
+  // de se charger/rafraîchir en arrière-plan même section fermée).
+  function wireCollapsible(toggleId, bodyId){
+    var toggle = document.getElementById(toggleId);
+    var body = document.getElementById(bodyId);
+    toggle.addEventListener('click', function(){
+      var next = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(next));
+      body.hidden = !next;
+    });
+  }
+  wireCollapsible('rsvpToggle', 'rsvpBody');
+  wireCollapsible('santaToggle', 'santaBody');
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
@@ -535,6 +574,7 @@
       tr.innerHTML =
         '<td class="mono">' + dateStr + '</td>' +
         '<td>' + escapeHtml(r.name || '—') + '</td>' +
+        '<td class="mono">' + escapeHtml(r.email || '—') + '</td>' +
         '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '—') + '</span></td>' +
         '<td class="msg">' + escapeHtml(r.message || '—') + '</td>' +
         '<td><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
@@ -584,10 +624,10 @@
   });
 
   exportBtn.addEventListener('click', function(){
-    var header = ['Date','Nom','Présence','Message'];
+    var header = ['Date','Nom','E-mail','Présence','Message'];
     var lines = [header.join(';')];
     rows.forEach(function(r){
-      lines.push([r.date, r.name, r.attending, r.message].map(function(v){
+      lines.push([r.date, r.name, r.email, r.attending, r.message].map(function(v){
         return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"';
       }).join(';'));
     });

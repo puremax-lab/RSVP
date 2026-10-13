@@ -4,11 +4,12 @@ rules_version = '2';
 //
 // Collections :
 //  - guests/{uid}               profil d'un invité connecté (1 doc par compte)
-//  - pairs/{pairId}              document "en-tête" du binôme (juste les deux emails,
-//                                 pour déclencher une notification par e-mail — jamais
-//                                 affiché, jamais lisible par un tiers)
 //  - pairs/{pairId}/messages/*  messages entre les deux personnes d'un binôme Secret Santa
-//                                (pairId = les deux uid triés et joints par "_")
+//                                (pairId = les deux uid triés et joints par "_"). Les emails
+//                                des deux membres ne sont JAMAIS stockés dans Firestore —
+//                                ils vivent uniquement côté serveur (Apps Script), pour que
+//                                la notification "nouveau message" ne transite jamais par le
+//                                navigateur de l'autre personne.
 //  - updates/{updateId}         annonces publiées par les organisateurs, visibles par
 //                                tous les invités connectés (espace membre)
 //
@@ -81,26 +82,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /pairs/{pairId} {
-      // En-tête du binôme : { emails: { [uid1]: email1, [uid2]: email2 } }.
-      // Seules les deux personnes concernées peuvent le lire (pour savoir où
-      // envoyer la notification "nouveau message" — jamais le nom de l'autre).
-      // Seul un admin peut l'écrire (créé automatiquement au tirage au sort).
+    match /pairs/{pairId}/messages/{messageId} {
+      // Seules les deux personnes du binôme peuvent lire ou écrire —
+      // même les admins n'y ont pas accès, c'est strictement privé.
       allow read: if isPairMember(pairId);
-      allow write: if isAdmin();
-
-      match /messages/{messageId} {
-        // Seules les deux personnes du binôme peuvent lire ou écrire —
-        // même les admins n'y ont pas accès, c'est strictement privé.
-        allow read: if isPairMember(pairId);
-        allow create: if isPairMember(pairId)
-                      && request.resource.data.senderUid == request.auth.uid
-                      && request.resource.data.keys().hasOnly(['senderUid', 'text', 'createdAt'])
-                      && request.resource.data.text is string
-                      && request.resource.data.text.size() > 0
-                      && request.resource.data.text.size() < 2000;
-        allow update, delete: if false;
-      }
+      allow create: if isPairMember(pairId)
+                    && request.resource.data.senderUid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['senderUid', 'text', 'createdAt'])
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() < 2000;
+      allow update, delete: if false;
     }
 
     // Tout le reste est fermé par défaut.

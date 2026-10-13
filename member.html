@@ -358,18 +358,15 @@
   // Prévient l'autre personne du binôme par e-mail qu'un nouveau message
   // l'attend — jamais son identité, juste "tu as un nouveau message".
   // Best-effort : une erreur ici n'empêche jamais l'envoi du message lui-même.
-  function notifyNewMessage(pid, myUid){
-    if(!window.APPS_SCRIPT_URL) return;
-    db.collection('pairs').doc(pid).get().then(function(snap){
-      if(!snap.exists) return;
-      var emails = snap.data().emails || {};
-      var otherUid = Object.keys(emails).filter(function(u){ return u !== myUid; })[0];
-      var toEmail = otherUid ? emails[otherUid] : null;
-      if(!toEmail) return;
-      return fetch(window.APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'notifyPairMessage', toEmail: toEmail })
-      });
+  function notifyNewMessage(pid){
+    if(!window.APPS_SCRIPT_URL || !auth.currentUser) return;
+    // On n'envoie que notre propre email (qu'on connaît déjà) et le pairId.
+    // Le serveur résout seul le destinataire à partir d'une table qui ne
+    // transite jamais par le navigateur — on ne reçoit donc jamais l'email
+    // (ni le nom) de l'autre personne.
+    fetch(window.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'notifyPairMessage', pairId: pid, senderEmail: auth.currentUser.email })
     }).catch(function(){ /* notification best-effort : on ignore les erreurs */ });
   }
 
@@ -385,7 +382,7 @@
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(){
         inputEl.value = '';
-        notifyNewMessage(pid, myUid);
+        notifyNewMessage(pid);
       }).catch(function(err){
         window.alert('Message non envoyé : ' + (err.message || err));
       }).finally(function(){

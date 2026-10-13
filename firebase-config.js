@@ -11,6 +11,6 @@ window.FIREBASE_CONFIG = {
   measurementId: "G-BNPR4MM3WR"
 };
 
-// Les deux adresses admin (Kisha & Max) — doivent correspondre EXACTEMENT
+// Les adresses admin (Kisha, Max & Esther) — doivent correspondre EXACTEMENT
 // à celles codées dans firestore.rules.
-window.ADMIN_EMAILS = ['josepha.tsm@outlook.be', 'youtamaxime@gmail.com'];
+window.ADMIN_EMAILS = ['josepha.tsm@outlook.be', 'youtamaxime@gmail.com', 'adjo93@hotmail.fr'];

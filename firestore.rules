@@ -70,9 +70,13 @@ service cloud.firestore {
       // receivingLastSeenAt — utilisés uniquement pour afficher un badge "nouveau"
       // côté client, aucune donnée sensible). Le tirage au sort (santaForUid /
       // receivingThreadId) n'est modifiable que par un admin.
+      // Une fois le tirage fait (binôme attribué), l'invité ne peut plus
+      // modifier sa participation : se retirer casserait la chaîne des binômes.
       allow update: if isAdmin()
                     || (isSignedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded', 'lastSeenUpdatesAt', 'givingLastSeenAt', 'receivingLastSeenAt']));
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded', 'lastSeenUpdatesAt', 'givingLastSeenAt', 'receivingLastSeenAt'])
+                        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['wantsSanta'])
+                            || !('santaForUid' in resource.data)));
 
       allow delete: if isAdmin();
     }

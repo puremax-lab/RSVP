@@ -296,7 +296,7 @@
         </div>
 
         <p class="foot-note" style="margin-top:28px;">Ces échanges restent strictement privés entre vous deux, même les organisateurs n'y ont pas accès.</p>
-        <p style="text-align:center; margin-top:18px;">
+        <p style="text-align:center; margin-top:18px;" id="santaLeaveRow">
           <button class="btn ghost small" id="santaLeaveBtn">Je ne veux plus participer</button>
         </p>
         <p class="msg-note" id="santaOptNote"></p>
@@ -381,6 +381,7 @@
   var santaJoinBtn = document.getElementById('santaJoinBtn');
   var santaActiveCard = document.getElementById('santaActiveCard');
   var santaLeaveBtn = document.getElementById('santaLeaveBtn');
+  var santaLeaveRow = document.getElementById('santaLeaveRow');
   var santaOptNote = document.getElementById('santaOptNote');
 
   var givingLead = document.getElementById('givingLead');
@@ -709,6 +710,10 @@
       return;
     }
 
+    // Une fois le tirage fait, se retirer casserait la chaîne des binômes :
+    // l'option n'est plus proposée (elle revient si le tirage est réinitialisé).
+    santaLeaveRow.hidden = hasDrawAssignment(profile);
+
     // -- Tu offres à... --
     var recipientUid = profile.santaForUid || null;
     if(recipientUid){
@@ -767,7 +772,12 @@
     });
   });
 
+  function hasDrawAssignment(profile){
+    return !!(profile && (profile.santaForUid || profile.givingThreadId || profile.receivingThreadId));
+  }
+
   santaLeaveBtn.addEventListener('click', function(){
+    if(hasDrawAssignment(currentProfile)) return;
     santaLeaveBtn.disabled = true;
     setWantsSanta(auth.currentUser, false).then(function(){
       return db.collection('guests').doc(auth.currentUser.uid).get();

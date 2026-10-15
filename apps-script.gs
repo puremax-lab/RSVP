@@ -254,28 +254,64 @@ function notifyPairMessage_(pairId, senderEmail) {
   if (!pairId || !sender) return { ok: false, error: 'missing_params' };
 
   var pair = findPairEmails_(pairId);
-  if (!pair) return { ok: false, error: 'unknown_pair' };
+  if (!pair) return logNotify_(pairId, { ok: false, error: 'unknown_pair' });
 
   var target = null;
   if (pair.emailA === sender) target = pair.emailB;
   else if (pair.emailB === sender) target = pair.emailA;
-  if (!target) return { ok: false, error: 'sender_mismatch' };
+  if (!target) return logNotify_(pairId, { ok: false, error: 'sender_mismatch' });
 
   var quota = MailApp.getRemainingDailyQuota();
-  if (quota <= 0) return { ok: false, error: 'quota_exceeded' };
+  if (quota <= 0) return logNotify_(pairId, { ok: false, error: 'quota_exceeded' });
 
   try {
-    MailApp.sendEmail({
-      to: target,
-      subject: 'Nouveau message - Christmas Party II 🎁',
-      body: 'Tu as reçu un nouveau message dans ton espace Secret Santa.\n\n' +
-            'Connecte-toi pour le lire : ' + MEMBER_URL,
-      name: 'Christmas Party II'
-    });
-    return { ok: true };
+    sendNewMessageEmail_(target);
+    return logNotify_(pairId, { ok: true });
   } catch (err) {
-    return { ok: false, error: String(err) };
+    return logNotify_(pairId, { ok: false, error: String(err) });
   }
+}
+
+function sendNewMessageEmail_(to) {
+  MailApp.sendEmail({
+    to: to,
+    subject: 'Nouveau message - Christmas Party II 🎁',
+    body: 'Tu as reçu un nouveau message dans ton espace Secret Santa.\n\n' +
+          'Connecte-toi pour le lire : ' + MEMBER_URL,
+    name: 'Christmas Party II'
+  });
+}
+
+// Trace chaque notification dans l'onglet "Exécutions" d'Apps Script, pour
+// comprendre après coup pourquoi un e-mail n'est pas parti (jamais d'adresse
+// e-mail dans le journal, seulement l'identifiant du fil).
+function logNotify_(pairId, result) {
+  console.log('notifyPairMessage ' + pairId + ' -> ' + JSON.stringify(result));
+  return result;
+}
+
+// À lancer à la main depuis l'éditeur : refait tout le chemin d'une vraie
+// notification "nouveau message" (binôme retrouvé dans PairEmails, expéditeur
+// reconnu, destinataire trouvé), mais envoie l'e-mail au propriétaire du
+// script au lieu du vrai destinataire. Fonctionne même après une
+// réinitialisation du tirage (PairEmails n'est pas vidé).
+function testerNotification() {
+  var sheet = getPairSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) { Logger.log('Aucun binôme enregistré dans PairEmails.'); return; }
+  var row = sheet.getRange(last, 1, 1, 3).getValues()[0];
+  var pairId = String(row[0]);
+  var sender = String(row[1]).toLowerCase();
+
+  var pair = findPairEmails_(pairId);
+  if (!pair) { Logger.log('Échec : binôme introuvable.'); return; }
+  var target = pair.emailA === sender ? pair.emailB : (pair.emailB === sender ? pair.emailA : null);
+  if (!target) { Logger.log('Échec : expéditeur non reconnu dans le binôme.'); return; }
+
+  var moi = Session.getEffectiveUser().getEmail();
+  sendNewMessageEmail_(moi);
+  Logger.log('Chemin de notification OK (le vrai destinataire aurait été ' + target + '). ' +
+             'E-mail de test envoyé à ' + moi + ' : vérifie ta boîte de réception et tes spams.');
 }
 
 function doGet(e) {
@@ -311,6 +347,21 @@ function getSheet_() {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+// À lancer à la main depuis l'éditeur Apps Script (menu déroulant des
+// fonctions > testerEnvoiEmail > Exécuter) : envoie un e-mail de test au
+// propriétaire du script uniquement, pour vérifier que l'envoi est autorisé
+// et voir le quota d'e-mails restant pour aujourd'hui. Jamais appelé par le site.
+function testerEnvoiEmail() {
+  var moi = Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail({
+    to: moi,
+    subject: 'Test - Christmas Party II',
+    body: "Si tu reçois cet e-mail, les annonces et les notifications Secret Santa peuvent partir.",
+    name: 'Christmas Party II'
+  });
+  Logger.log('E-mail de test envoyé à ' + moi + '. Quota restant aujourd\'hui : ' + MailApp.getRemainingDailyQuota());
 }
 
 function jsonOut_(obj) {

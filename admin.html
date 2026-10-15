@@ -94,7 +94,7 @@
   .collapsible-body{ margin-top:0; }
 
   .stats{ display:grid; grid-template-columns:repeat(2,1fr); margin-bottom:28px; }
-  @media (min-width:640px){ .stats{grid-template-columns:repeat(3,1fr);} }
+  @media (min-width:640px){ .stats{grid-template-columns:repeat(4,1fr);} }
   .stat{ padding:18px 20px; border-top:1px solid var(--line); }
   @media (min-width:640px){ .stat{ border-top:none; border-left:1px solid var(--line);} .stat:first-child{border-left:none;} }
   .stat .n{ font-size:2.1rem; color:var(--gold-light); line-height:1; }
@@ -116,6 +116,12 @@
   .status{ font-size:.85rem; }
   .status.yes{ color:var(--ok); }
   .status.no{ color:var(--bad); }
+
+  /* ---- Case "Payé" (suivi manuel des 40 €) ---- */
+  .paid-toggle{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:.85rem; color:var(--ink-dim); }
+  .paid-toggle input{ width:18px; height:18px; margin:0; accent-color:var(--ok); cursor:pointer; }
+  .paid-toggle input:checked + span{ color:var(--ok); }
+  .paid-toggle input:disabled{ opacity:.5; cursor:wait; }
 
   .empty{ text-align:center; padding:50px 20px; color:var(--ink-dim); font-style:italic; }
   .foot-note{ margin-top:22px; font-size:.78rem; color:var(--ink-dim); text-align:center; font-style:italic; }
@@ -257,6 +263,7 @@
             <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Réponses</div></div>
             <div class="stat"><div class="n" id="statYes">0</div><div class="l">Présent(e)s</div></div>
             <div class="stat"><div class="n" id="statNo">0</div><div class="l">Absent(e)s</div></div>
+            <div class="stat"><div class="n" id="statPaid">0</div><div class="l">Payé(e)s · 40 €</div></div>
           </div>
 
           <div class="toolbar">
@@ -271,6 +278,7 @@
                   <th data-key="name">Nom</th>
                   <th data-key="email">E-mail</th>
                   <th data-key="attending">Présence</th>
+                  <th data-key="paid">Payé (40 €)</th>
                   <th data-key="message">Message</th>
                   <th></th>
                 </tr>
@@ -602,6 +610,10 @@
         '<td>' + escapeHtml(r.name || '-') + '</td>' +
         '<td class="mono">' + escapeHtml(r.email || '-') + '</td>' +
         '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '-') + '</span></td>' +
+        '<td>' + (isYes(r)
+          ? '<label class="paid-toggle"><input type="checkbox" class="paid-check" data-date="' + escapeHtml(r.date) + '"' +
+              (isPaid(r) ? ' checked' : '') + (pendingPaid.hasOwnProperty(r.date) ? ' disabled' : '') + '><span>' + (isPaid(r) ? 'Payé' : 'À payer') + '</span></label>'
+          : '-') + '</td>' +
         '<td class="msg">' + escapeHtml(r.message || '-') + '</td>' +
         '<td><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
       tbody.appendChild(tr);
@@ -616,7 +628,43 @@
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statYes').textContent = yes.length;
     document.getElementById('statNo').textContent = no;
+    document.getElementById('statPaid').textContent = yes.filter(isPaid).length + ' / ' + yes.length;
   }
+
+  // ---- Paiement des 40 € (case cochée à la main, enregistrée dans la feuille) ----
+  // pendingPaid garde les cases en cours d'enregistrement : le rafraîchissement
+  // automatique (30 s) ne doit pas les faire "sauter" avant la réponse du serveur.
+  var pendingPaid = {};
+
+  function isPaid(r){
+    return pendingPaid.hasOwnProperty(r.date) ? pendingPaid[r.date] : r.paid === true;
+  }
+
+  tbody.addEventListener('change', function(e){
+    var box = e.target.closest('.paid-check');
+    if(!box) return;
+    var dateKey = box.getAttribute('data-date');
+    var paid = box.checked;
+    pendingPaid[dateKey] = paid;
+    renderRows();
+
+    fetch(window.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'setPaid', key: getAdminKey(), date: dateKey, paid: paid })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(!(data && data.ok)) throw new Error((data && data.error) || 'erreur inconnue');
+        rows.forEach(function(r){ if(r.date === dateKey) r.paid = paid; });
+      })
+      .catch(function(err){
+        window.alert('Paiement non enregistré (' + (err.message || 'problème réseau') + ').');
+      })
+      .finally(function(){
+        delete pendingPaid[dateKey];
+        renderRows();
+      });
+  });
 
   tbody.addEventListener('click', function(e){
     var btn = e.target.closest('.btn-delete');
@@ -650,10 +698,10 @@
   });
 
   exportBtn.addEventListener('click', function(){
-    var header = ['Date','Nom','E-mail','Présence','Message'];
+    var header = ['Date','Nom','E-mail','Présence','Payé','Message'];
     var lines = [header.join(';')];
     rows.forEach(function(r){
-      lines.push([r.date, r.name, r.email, r.attending, r.message].map(function(v){
+      lines.push([r.date, r.name, r.email, r.attending, isYes(r) ? (isPaid(r) ? 'Oui' : 'Non') : '', r.message].map(function(v){
         return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"';
       }).join(';'));
     });

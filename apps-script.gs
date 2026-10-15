@@ -8,6 +8,8 @@
  *                envoyer les e-mails : annonces groupées depuis l'admin (protégé
  *                par ADMIN_KEY) et notifications "nouveau message" Secret Santa
  *                déclenchées par l'espace invité (pas de clé, texte toujours fixe).
+ *              Sert enfin à cocher depuis l'admin les invités qui ont payé
+ *              leurs 40 € (colonne "Payé", protégé par ADMIN_KEY).
  *  - doGet()   → le tableau de bord admin lit toutes les lignes (protégé par ADMIN_KEY)
  *
  * INSTALLATION (5 minutes) :
@@ -46,6 +48,12 @@ function doPost(e) {
     if (data.action === 'delete') {
       if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
       return jsonOut_(deleteRow_(sheet, data.date));
+    }
+
+    // Suivi manuel du paiement des 40 € depuis l'admin (protégé par ADMIN_KEY).
+    if (data.action === 'setPaid') {
+      if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
+      return jsonOut_(setPaid_(sheet, data.date, data.paid === true));
     }
 
     // Envoi d'un e-mail groupé à une liste d'invités (protégé par ADMIN_KEY).
@@ -117,6 +125,23 @@ function deleteRow_(sheet, dateKey) {
     var rowDate = values[i][0] instanceof Date ? values[i][0].toISOString() : String(values[i][0]);
     if (rowDate === dateKey) {
       sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'not_found' };
+}
+
+// Colonne 7 ("Payé") : ajoutée après Email, jamais insérée au milieu, pour
+// ne pas décaler les lignes existantes. "Oui" quand le paiement est reçu.
+var PAID_COL = 7;
+
+function setPaid_(sheet, dateKey, paid) {
+  if (!sheet.getRange(1, PAID_COL).getValue()) sheet.getRange(1, PAID_COL).setValue('Payé');
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var rowDate = values[i][0] instanceof Date ? values[i][0].toISOString() : String(values[i][0]);
+    if (rowDate === dateKey) {
+      sheet.getRange(i + 1, PAID_COL).setValue(paid ? 'Oui' : '');
       return { ok: true };
     }
   }
@@ -270,7 +295,8 @@ function doGet(e) {
       attending: row[2],
       guests: row[3],
       message: row[4],
-      email: row[5] || ''
+      email: row[5] || '',
+      paid: row[PAID_COL - 1] === 'Oui' || row[PAID_COL - 1] === true
     });
   }
   return jsonOut_(out);
@@ -281,7 +307,7 @@ function getSheet_() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['Date', 'Nom', 'Présence', 'Invités', 'Message', 'Email']);
+    sheet.appendRow(['Date', 'Nom', 'Présence', 'Invités', 'Message', 'Email', 'Payé']);
     sheet.setFrozenRows(1);
   }
   return sheet;

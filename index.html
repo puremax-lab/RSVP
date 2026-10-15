@@ -126,11 +126,11 @@
   .verse-ref{ margin-top:18px; font-size:.7rem; color:var(--gold); }
 
   .details{ margin-top:74px; display:grid; grid-template-columns:1fr; }
-  @media (min-width:560px){ .details{grid-template-columns:repeat(3,1fr);} }
   .detail{ padding:24px 16px; border-top:1px solid var(--line); }
+  /* 4 cases : une colonne sur mobile, grille 2 × 2 au-delà */
   @media (min-width:560px){
-    .detail{ border-top:none; border-left:1px solid var(--line); }
-    .detail:first-child{ border-left:none; }
+    .details{ grid-template-columns:repeat(2,1fr); }
+    .detail:nth-child(even){ border-left:1px solid var(--line); }
   }
   .detail .label{ font-size:.62rem; color:var(--gold); }
   .detail .value{ margin-top:12px; font-size:1.12rem; color:var(--ink); }
@@ -350,11 +350,15 @@
   <section class="details">
     <div class="detail">
       <p class="label">Quand</p>
-      <p class="value">Samedi 19 décembre 2026</p>
+      <p class="value">Samedi 19 décembre 2026<br>à 18h30</p>
     </div>
     <div class="detail">
       <p class="label">Où</p>
       <p class="value">Lieu à venir</p>
+    </div>
+    <div class="detail">
+      <p class="label">Thème</p>
+      <p class="value">Thème à venir</p>
     </div>
     <div class="detail">
       <p class="label">RSVP avant le</p>

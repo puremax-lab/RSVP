@@ -442,6 +442,7 @@
     {
       title: 'Dress code : Burgundy & Olive Green',
       publishedAt: new Date('2026-10-20T08:00:00Z'),
+      pinned: 2, // épinglée, juste sous la participation de 40 €
       body: "Pour notre soirée de Noël, on compte sur vous pour sortir vos plus belles tenues ! 🥂🤎\n\n" +
             "Dress code : BURGUNDY & OLIVE GREEN · Chic & Classy\n\n" +
             "On veut du style, de l'élégance et des looks soignés ! 😍 Venez bien habillés et jouez le jeu du dress code.\n\n" +
@@ -458,7 +459,7 @@
     {
       title: 'Participation : 40 € par personne',
       publishedAt: new Date('2026-10-13T14:27:00Z'),
-      pinned: true, // toujours en première position, quelle que soit sa date
+      pinned: 1, // épinglée en première position, quelle que soit sa date
       body: 'Une participation de 40 € par personne est demandée pour la Christmas Party II (salle, repas, décoration, animations).\n\n' +
             'À verser au plus tard le 15 novembre 2026.\n' +
             'Bénéficiaire : DEWU ESTHER\n' +
@@ -863,14 +864,16 @@
 
   function fixedAnnouncements(){
     return FIXED_ANNOUNCEMENTS.map(function(a){
-      return { title: a.title, body: a.body, images: a.images, after: a.after, millis: a.publishedAt.getTime(), pinned: a.pinned === true };
+      return { title: a.title, body: a.body, images: a.images, after: a.after, millis: a.publishedAt.getTime(), pinned: a.pinned || 0 };
     });
   }
 
   function renderAnnouncements(list){
-    // Épinglées d'abord, puis toutes les autres de la plus récente à la plus ancienne.
+    // Épinglées d'abord (dans l'ordre de leur numéro "pinned"), puis toutes
+    // les autres de la plus récente à la plus ancienne.
     return list.slice().sort(function(a, b){
-      if(!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      var pa = a.pinned || Infinity, pb = b.pinned || Infinity;
+      if(pa !== pb) return pa - pb;
       return b.millis - a.millis;
     }).map(renderAnnouncement).join('');
   }

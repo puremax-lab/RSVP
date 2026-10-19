@@ -446,7 +446,8 @@
   // avec elles par date (publishedAt), la plus récente en haut.
   var FIXED_ANNOUNCEMENTS = [
     {
-      title: 'Dress code : Burgundy & Olive Green',
+      id: 'dress-code',
+      title: 'Dress code : Chic & Classy',
       publishedAt: new Date('2026-10-20T08:00:00Z'),
       pinned: 2, // épinglée, juste sous la participation de 40 €
       body: "Pour notre soirée de Noël, on compte sur vous pour sortir vos plus belles tenues ! 🥂🤎\n\n" +
@@ -463,6 +464,7 @@
       after: "Dress to impress. Make it classy. ✨\n\nOn compte sur vous pour être au top ! ❤️‍🔥"
     },
     {
+      id: 'participation-40',
       title: 'Participation : 40 € par personne',
       publishedAt: new Date('2026-10-13T14:27:00Z'),
       pinned: 1, // épinglée en première position, quelle que soit sa date
@@ -846,12 +848,39 @@
     }).join('') + '</div>';
   }
 
+  // ---- "Nouveau" par annonce : retiré dès que l'annonce est ouverte ----
+  // Les annonces lues sont mémorisées sur l'appareil (par compte). Une annonce
+  // plus ancienne que l'ancien "dernier passage" (lastSeenUpdatesAt, utilisé
+  // avant cette version) compte comme déjà lue.
+  var currentAnnouncements = [];
+
+  function readKey(){ return 'cp2_read_announcements_' + (auth.currentUser ? auth.currentUser.uid : ''); }
+
+  function getReadIds(){
+    try{ return JSON.parse(window.localStorage.getItem(readKey()) || '[]'); }catch(e){ return []; }
+  }
+
+  function markAnnouncementRead(id){
+    try{
+      var ids = getReadIds();
+      if(ids.indexOf(id) === -1){ ids.push(id); window.localStorage.setItem(readKey(), JSON.stringify(ids)); }
+    }catch(e){ /* stockage indisponible : le badge reviendra au prochain chargement */ }
+  }
+
+  function isUnread(a){
+    return a.millis > toMillis(currentProfile && currentProfile.lastSeenUpdatesAt) && getReadIds().indexOf(a.id) === -1;
+  }
+
+  // Le "Nouveau" de la section Annonces reste tant qu'une annonce n'est pas lue.
+  function refreshUpdatesBadge(){
+    updatesBadge.hidden = !currentAnnouncements.some(isUnread);
+  }
+
   // Chaque annonce n'affiche que son titre ; un toucher déroule son message.
-  // La date ne s'affiche pas : elle sert au classement et au badge "Nouveau"
-  // (annonce plus récente que la dernière visite des annonces).
+  // La date ne s'affiche pas : elle sert uniquement au classement.
   function renderAnnouncement(a){
-    var isNew = a.millis > toMillis(currentProfile && currentProfile.lastSeenUpdatesAt);
-    return '<div class="announce-item">' +
+    var isNew = isUnread(a);
+    return '<div class="announce-item" data-id="' + escapeHtml(a.id) + '">' +
       '<button type="button" class="announce-toggle" aria-expanded="false">' +
         '<span class="announce-head">' + (a.pinned ? '<span class="pin-badge">📌</span>' : '') + escapeHtml(a.title || '') +
           (isNew ? ' <span class="unread-badge">Nouveau</span>' : '') + '</span>' +
@@ -871,11 +900,17 @@
     var open = toggle.getAttribute('aria-expanded') !== 'true';
     toggle.setAttribute('aria-expanded', String(open));
     toggle.nextElementSibling.hidden = !open;
+    var badge = toggle.querySelector('.unread-badge');
+    if(open && badge){
+      markAnnouncementRead(toggle.parentNode.getAttribute('data-id'));
+      badge.remove();
+      refreshUpdatesBadge();
+    }
   });
 
   function fixedAnnouncements(){
     return FIXED_ANNOUNCEMENTS.map(function(a){
-      return { title: a.title, body: a.body, images: a.images, after: a.after, millis: a.publishedAt.getTime(), pinned: a.pinned || 0 };
+      return { id: a.id, title: a.title, body: a.body, images: a.images, after: a.after, millis: a.publishedAt.getTime(), pinned: a.pinned || 0 };
     });
   }
 
@@ -890,24 +925,18 @@
   }
 
   function loadUpdates(){
-    updatesList.innerHTML = renderAnnouncements(fixedAnnouncements()) + '<p class="empty-note">Chargement...</p>';
+    currentAnnouncements = fixedAnnouncements();
+    updatesList.innerHTML = renderAnnouncements(currentAnnouncements) + '<p class="empty-note">Chargement...</p>';
+    refreshUpdatesBadge();
     db.collection('updates').orderBy('createdAt', 'desc').limit(10).get().then(function(qs){
       var list = fixedAnnouncements();
       qs.forEach(function(doc){
         var d = doc.data();
-        list.push({ title: d.title, body: d.body, millis: toMillis(d.createdAt) });
+        list.push({ id: 'u-' + doc.id, title: d.title, body: d.body, millis: toMillis(d.createdAt) });
       });
+      currentAnnouncements = list;
       updatesList.innerHTML = renderAnnouncements(list);
-
-      // Badge "Nouveau" : une annonce (fixe ou publiée) plus récente que la
-      // dernière visite de cette section.
-      var latestMillis = list.reduce(function(max, a){ return Math.max(max, a.millis || 0); }, 0);
-      if(isToggleOpen('updatesToggle')){
-        updatesBadge.hidden = true;
-      } else {
-        var seenMillis = toMillis(currentProfile && currentProfile.lastSeenUpdatesAt);
-        updatesBadge.hidden = !(latestMillis > seenMillis);
-      }
+      refreshUpdatesBadge();
     }).catch(function(){
       updatesList.innerHTML = renderAnnouncements(fixedAnnouncements()) + '<p class="empty-note">Impossible de charger les annonces.</p>';
     });
@@ -955,10 +984,9 @@
   });
 
   // ---- Sections repliables : repliées par défaut, badge effacé à l'ouverture ----
-  wireCollapsible('updatesToggle', 'updatesBody', function(){
-    updatesBadge.hidden = true;
-    markSeenLocal('lastSeenUpdatesAt');
-  });
+  // Annonces : ouvrir la section ne marque rien comme lu, chaque annonce
+  // perd son "Nouveau" quand on l'ouvre.
+  wireCollapsible('updatesToggle', 'updatesBody');
   wireCollapsible('givingToggle', 'givingBody', function(){
     givingBadge.hidden = true;
     markSeenLocal('givingLastSeenAt');

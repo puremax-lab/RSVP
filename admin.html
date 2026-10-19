@@ -149,7 +149,15 @@
   .msg-note.ok{ color:var(--ok); }
   .msg-note.bad{ color:var(--bad); }
 
-  .participants-note{ text-align:center; margin-top:14px; color:var(--ink-dim); font-style:italic; }
+  .participants-toggle{
+    width:100%; background:none; border:1px solid var(--line); border-radius:4px; padding:12px 16px; margin:0 0 14px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left;
+    font-family:inherit; -webkit-tap-highlight-color:transparent;
+  }
+  .participants-toggle:hover{ border-color:var(--gold-dim); }
+  .participants-note{ color:var(--ink-dim); font-style:italic; font-size:.95rem; }
+  .participants-toggle .chevron{ flex-shrink:0; color:var(--gold-dim); transition:transform .2s ease; }
+  .participants-toggle[aria-expanded="true"] .chevron{ transform:rotate(180deg); }
   .santa-actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:22px; }
   .santa-actions .btn{ margin-top:0; }
   #santaDrawBtn{ max-width:320px; }
@@ -302,16 +310,22 @@
       <p class="section-sub">Le tirage attribue un binôme à chaque invité(e) ayant choisi de participer.</p>
 
       <div class="collapsible-body" id="santaBody" hidden>
-        <div class="table-wrap">
-          <table id="santaTable">
-            <thead>
-              <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th></tr>
-            </thead>
-            <tbody id="santaTbody"></tbody>
-          </table>
-          <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
+        <!-- Liste des participants : repliée par défaut, la ligne de résumé sert de bouton -->
+        <button type="button" class="participants-toggle" id="participantsToggle" aria-expanded="false">
+          <span class="participants-note" id="santaParticipantsNote"></span>
+          <span class="chevron">▾</span>
+        </button>
+        <div id="participantsBody" hidden>
+          <div class="table-wrap">
+            <table id="santaTable">
+              <thead>
+                <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th></tr>
+              </thead>
+              <tbody id="santaTbody"></tbody>
+            </table>
+            <p class="empty" id="santaEmptyMsg" style="display:none;">Aucun invité inscrit pour l'instant.</p>
+          </div>
         </div>
-        <p class="participants-note" id="santaParticipantsNote"></p>
 
         <div class="santa-actions">
           <button class="btn" id="santaDrawBtn">Lancer le tirage au sort</button>
@@ -433,6 +447,7 @@
   }
   wireCollapsible('rsvpToggle', 'rsvpBody');
   wireCollapsible('santaToggle', 'santaBody');
+  wireCollapsible('participantsToggle', 'participantsBody');
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
@@ -769,7 +784,7 @@
     var n = participantsOnly().length;
     santaParticipantsNote.textContent = guestsCache.length
       ? n + ' / ' + guestsCache.length + ' invité(e)s inscrit(e)s participent au Secret Santa.'
-      : '';
+      : "Aucun invité inscrit pour l'instant.";
   }
 
   santaRefreshBtn.addEventListener('click', function(){

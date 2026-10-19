@@ -127,11 +127,13 @@
 
   .details{ margin-top:74px; display:grid; grid-template-columns:1fr; }
   .detail{ padding:24px 16px; border-top:1px solid var(--line); }
-  /* 4 cases : une colonne sur mobile, grille 2 × 2 au-delà */
+  /* 3 cases : une colonne sur mobile, côte à côte au-delà */
   @media (min-width:560px){
-    .details{ grid-template-columns:repeat(2,1fr); }
-    .detail:nth-child(even){ border-left:1px solid var(--line); }
+    .details{ grid-template-columns:repeat(3,1fr); }
+    .detail{ border-top:none; border-left:1px solid var(--line); }
+    .detail:first-child{ border-left:none; }
   }
+  .detail .value-sub{ font-style:italic; color:var(--ink-dim); font-size:.95rem; }
   .detail .label{ font-size:.62rem; color:var(--gold); }
   .detail .value{ margin-top:12px; font-size:1.12rem; color:var(--ink); }
 
@@ -358,11 +360,7 @@
     </div>
     <div class="detail">
       <p class="label">Thème</p>
-      <p class="value">Thème à venir</p>
-    </div>
-    <div class="detail">
-      <p class="label">RSVP avant le</p>
-      <p class="value">30 septembre 2026</p>
+      <p class="value">Burgundy &amp; Olive Green<br><span class="value-sub">Chic &amp; Classy</span></p>
     </div>
   </section>
 
@@ -386,7 +384,6 @@
 
     <p class="modal-eyebrow label">R.S.V.P.</p>
     <h2>Christmas Party II</h2>
-    <p class="modal-sub">Merci de confirmer avant le 30 septembre 2026</p>
     <p class="modal-note">Invitation personnelle · ne pas partager</p>
 
     <form id="rsvpForm">

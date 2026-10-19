@@ -108,8 +108,9 @@
   .announce-item:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
   .announce-item .announce-head{ font-family:'Marcellus',serif; font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:7px; }
   .announce-item .announce-body{ white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6; }
-  .pin-badge{ color:var(--gold-light); }
-
+  .announce-gallery{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+  .announce-gallery a{ display:block; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:rgba(0,0,0,.2); }
+  .announce-gallery img{ display:block; width:100%; height:auto; }
   .santa-card{ border:1px solid var(--line); border-radius:6px; padding:20px 20px 22px; text-align:center; }
   .santa-card p.lead{ font-size:1.02rem; }
 
@@ -425,16 +426,36 @@
     }catch(e){ /* navigateur très ancien sans URLSearchParams : on ignore */ }
   })();
 
-  // Message fixe (identique pour tout le monde) : affiché une fois en pop-up,
-  // puis conservé en permanence comme première annonce de l'espace membre.
-  var PINNED_ANNOUNCEMENT = {
-    title: 'Participation : 40 € par personne',
-    body: 'Une participation de 40 € par personne est demandée pour la Christmas Party II (salle, repas, décoration, animations).\n\n' +
-          'À verser au plus tard le 15 novembre 2026.\n' +
-          'Bénéficiaire : DEWU ESTHER\n' +
-          'IBAN : FR76 2823 3000 0121 9109 2493 512\n\n' +
-          'Passé cette date, la place n\'est plus garantie.'
-  };
+  // Annonces fixes (identiques pour tout le monde, y compris les comptes créés
+  // plus tard) : mélangées aux annonces publiées depuis l'admin et classées
+  // avec elles par date (publishedAt), la plus récente en haut.
+  var FIXED_ANNOUNCEMENTS = [
+    {
+      title: 'Dress code : Burgundy & Olive Green',
+      publishedAt: new Date('2026-10-20T08:00:00Z'),
+      body: "Pour notre soirée de Noël, on compte sur vous pour sortir vos plus belles tenues ! 🥂🤎\n\n" +
+            "Dress code : BURGUNDY & OLIVE GREEN · Chic & Classy\n\n" +
+            "On veut du style, de l'élégance et des looks soignés ! 😍 Venez bien habillés et jouez le jeu du dress code.\n\n" +
+            "🤎 Pas de panique si vous n'avez pas une tenue entièrement dans le thème ! Vous pouvez compléter votre look avec des pièces neutres, comme un pantalon noir, gris foncé ou bleu marine, tout en gardant une tenue élégante et harmonieuse.\n\n" +
+            "🚫 Les couleurs et pièces à éviter absolument : pas de jeans, de bleu clair, de gris clair, de beige, de blanc, de couleurs claires ni de marron.\n\n" +
+            "🏆 AND OF COURSE... BEST DRESSED WINS A PRIZE! 👀✨ Comme l'année dernière, la personne qui aura le meilleur look remportera un prix ! Alors, donnez tout et sortez vos plus belles tenues. On veut voir qui va voler la vedette cette année ! 😮‍💨🔥\n\n" +
+            "👇 Vous trouverez ci-dessous quelques inspirations de couleurs et de styles pour vous guider.",
+      images: [
+        { src: 'images/dress-code-ladies', alt: 'Dress code Ladies : inspirations de tenues burgundy et olive green' },
+        { src: 'images/dress-code-gentlemen', alt: 'Dress code Gentlemen : inspirations de tenues burgundy et olive green' }
+      ],
+      after: "Dress to impress. Make it classy. ✨\n\nOn compte sur vous pour être au top ! ❤️‍🔥"
+    },
+    {
+      title: 'Participation : 40 € par personne',
+      publishedAt: new Date('2026-10-13T14:27:00Z'),
+      body: 'Une participation de 40 € par personne est demandée pour la Christmas Party II (salle, repas, décoration, animations).\n\n' +
+            'À verser au plus tard le 15 novembre 2026.\n' +
+            'Bénéficiaire : DEWU ESTHER\n' +
+            'IBAN : FR76 2823 3000 0121 9109 2493 512\n\n' +
+            'Passé cette date, la place n\'est plus garantie.'
+    }
+  ];
 
   function showCard(card){
     [loginCard, nameCard, dashCard].forEach(function(c){ c.hidden = (c !== card); });
@@ -791,39 +812,51 @@
     });
   });
 
-  // ---- Annonces (le message fixe de bienvenue reste épinglé en premier) ----
-  function renderPinnedAnnouncement(){
+  // ---- Annonces : annonces fixes + annonces publiées depuis l'admin, ----
+  // ---- toutes classées par date (la plus récente en haut) ----
+  // Photos : vignette légère (560 px) dans la liste, image complète au toucher.
+  function renderGallery(images){
+    return '<div class="announce-gallery">' + images.map(function(img){
+      return '<a href="' + img.src + '.webp" target="_blank" rel="noopener">' +
+        '<img src="' + img.src + '-560.webp" srcset="' + img.src + '-560.webp 560w, ' + img.src + '.webp 1145w" ' +
+        'sizes="(max-width:560px) 45vw, 260px" width="560" height="672" loading="lazy" decoding="async" alt="' + escapeHtml(img.alt) + '">' +
+      '</a>';
+    }).join('') + '</div>';
+  }
+
+  // La date ne s'affiche pas : elle sert uniquement au classement et au badge.
+  function renderAnnouncement(a){
     return '<div class="announce-item">' +
-      '<p class="announce-head"><span class="pin-badge">📌</span>' + escapeHtml(PINNED_ANNOUNCEMENT.title) + '</p>' +
-      '<p class="announce-body">' + escapeHtml(PINNED_ANNOUNCEMENT.body) + '</p>' +
+      '<p class="announce-head">' + escapeHtml(a.title || '') + '</p>' +
+      '<p class="announce-body">' + escapeHtml(a.body || '') + '</p>' +
+      (a.images ? renderGallery(a.images) : '') +
+      (a.after ? '<p class="announce-body">' + escapeHtml(a.after) + '</p>' : '') +
     '</div>';
   }
 
+  function fixedAnnouncements(){
+    return FIXED_ANNOUNCEMENTS.map(function(a){
+      return { title: a.title, body: a.body, images: a.images, after: a.after, millis: a.publishedAt.getTime() };
+    });
+  }
+
+  function renderAnnouncements(list){
+    return list.slice().sort(function(a, b){ return b.millis - a.millis; }).map(renderAnnouncement).join('');
+  }
+
   function loadUpdates(){
-    updatesList.innerHTML = renderPinnedAnnouncement() + '<p class="empty-note">Chargement...</p>';
+    updatesList.innerHTML = renderAnnouncements(fixedAnnouncements()) + '<p class="empty-note">Chargement...</p>';
     db.collection('updates').orderBy('createdAt', 'desc').limit(10).get().then(function(qs){
-      var html = renderPinnedAnnouncement();
-      var latestMillis = 0;
-      if(qs.empty){
-        updatesList.innerHTML = html;
-      } else {
-        qs.forEach(function(doc){
-          var d = doc.data();
-          var ms = toMillis(d.createdAt);
-          if(ms > latestMillis) latestMillis = ms;
-          var dateStr = '';
-          if(d.createdAt && d.createdAt.toDate){
-            dateStr = d.createdAt.toDate().toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'});
-          }
-          html += '<div class="announce-item">' +
-            '<p class="announce-head">' + escapeHtml(d.title || '') + (dateStr ? ' · ' + dateStr : '') + '</p>' +
-            '<p class="announce-body">' + escapeHtml(d.body || '') + '</p>' +
-          '</div>';
-        });
-        updatesList.innerHTML = html;
-      }
-      // Badge "Nouveau" : annonce publiée après la dernière visite de cette
-      // section (le message épinglé, toujours identique, ne compte jamais).
+      var list = fixedAnnouncements();
+      qs.forEach(function(doc){
+        var d = doc.data();
+        list.push({ title: d.title, body: d.body, millis: toMillis(d.createdAt) });
+      });
+      updatesList.innerHTML = renderAnnouncements(list);
+
+      // Badge "Nouveau" : une annonce (fixe ou publiée) plus récente que la
+      // dernière visite de cette section.
+      var latestMillis = list.reduce(function(max, a){ return Math.max(max, a.millis || 0); }, 0);
       if(isToggleOpen('updatesToggle')){
         updatesBadge.hidden = true;
       } else {
@@ -831,7 +864,7 @@
         updatesBadge.hidden = !(latestMillis > seenMillis);
       }
     }).catch(function(){
-      updatesList.innerHTML = renderPinnedAnnouncement() + '<p class="empty-note">Impossible de charger les annonces.</p>';
+      updatesList.innerHTML = renderAnnouncements(fixedAnnouncements()) + '<p class="empty-note">Impossible de charger les annonces.</p>';
     });
   }
 

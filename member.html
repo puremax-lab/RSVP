@@ -118,7 +118,13 @@
   .pin-badge{ color:var(--gold-light); }
   .announce-item .announce-body{ white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6; }
   .announce-gallery{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
-  .announce-gallery a{ display:block; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:rgba(0,0,0,.2); }
+  .announce-gallery a{ position:relative; display:block; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:rgba(0,0,0,.2); }
+  .zoom-hint{
+    position:absolute; right:6px; bottom:6px; padding:4px 9px; border-radius:20px;
+    background:rgba(10,5,4,.78); border:1px solid var(--line); color:var(--gold-light);
+    font-family:'Marcellus', serif; font-size:.56rem; letter-spacing:.08em; text-transform:uppercase;
+    pointer-events:none; display:inline-flex; align-items:center; gap:5px;
+  }
   .announce-gallery img{ display:block; width:100%; height:auto; }
   .santa-card{ border:1px solid var(--line); border-radius:6px; padding:20px 20px 22px; text-align:center; }
   .santa-card p.lead{ font-size:1.02rem; }
@@ -826,11 +832,16 @@
   // ---- Annonces : annonces fixes + annonces publiées depuis l'admin, ----
   // ---- toutes classées par date (la plus récente en haut) ----
   // Photos : vignette légère (560 px) dans la liste, image complète au toucher.
+  // Icône "agrandir" (flèches vers les coins), dessinée en SVG pour être
+  // identique sur tous les appareils et prendre la couleur dorée du texte.
+  var EXPAND_ICON = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
   function renderGallery(images){
     return '<div class="announce-gallery">' + images.map(function(img){
       return '<a href="' + img.src + '.webp" target="_blank" rel="noopener">' +
         '<img src="' + img.src + '-560.webp" srcset="' + img.src + '-560.webp 560w, ' + img.src + '.webp 1145w" ' +
         'sizes="(max-width:560px) 45vw, 260px" width="560" height="672" loading="lazy" decoding="async" alt="' + escapeHtml(img.alt) + '">' +
+        '<span class="zoom-hint" aria-hidden="true">' + EXPAND_ICON + 'Agrandir</span>' +
       '</a>';
     }).join('') + '</div>';
   }

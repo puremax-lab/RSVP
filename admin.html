@@ -117,11 +117,23 @@
   .status.yes{ color:var(--ok); }
   .status.no{ color:var(--bad); }
 
-  /* ---- Case "Payé" (suivi manuel des 40 €) ---- */
-  .paid-toggle{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:.85rem; color:var(--ink-dim); }
-  .paid-toggle input{ width:18px; height:18px; margin:0; accent-color:var(--ok); cursor:pointer; }
-  .paid-toggle input:checked + span{ color:var(--ok); }
-  .paid-toggle input:disabled{ opacity:.5; cursor:wait; }
+  /* ---- Payment of the 40 € (manual tracking: to pay / partial / paid) ---- */
+  .pay-cell{ display:inline-flex; align-items:center; gap:8px; }
+  .pay-status{
+    background:transparent; color:var(--ink); border:1px solid var(--line); border-radius:2px;
+    padding:6px 8px; font-family:inherit; font-size:.88rem; cursor:pointer;
+  }
+  .pay-status option{ background:#170907; color:var(--ink); }
+  .pay-status.paid{ color:var(--ok); border-color:var(--ok); }
+  .pay-status.partial{ color:var(--gold-light); border-color:var(--gold); }
+  .pay-status:disabled, .pay-amount:disabled{ opacity:.5; cursor:wait; }
+  .pay-amount{
+    width:64px; background:transparent; color:var(--parchment); border:none; border-bottom:1px solid var(--gold);
+    padding:4px 2px; font-family:inherit; font-size:.92rem; text-align:right;
+  }
+  .pay-amount:focus{ outline:none; border-color:var(--gold-light); }
+  .pay-euro{ color:var(--ink-dim); font-size:.88rem; }
+  .stat .l.sub-l{ margin-top:4px; letter-spacing:.06em; text-transform:none; font-family:inherit; font-style:italic; font-size:.8rem; }
 
   .empty{ text-align:center; padding:50px 20px; color:var(--ink-dim); font-style:italic; }
   .foot-note{ margin-top:22px; font-size:.78rem; color:var(--ink-dim); text-align:center; font-style:italic; }
@@ -163,7 +175,11 @@
   #santaDrawBtn{ max-width:320px; }
 
   /* ---- Formulaire d'annonce ---- */
-  #updatesSection .field-label{ display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px; }
+  #updatesSection .field-label, #eventSection .field-label{ display:block; font-size:.6rem; color:var(--gold); margin-bottom:8px; }
+  .event-grid{ display:grid; grid-template-columns:1fr; gap:0 24px; }
+  @media (min-width:640px){ .event-grid{ grid-template-columns:1fr 1fr; } }
+  .event-wide{ grid-column:1 / -1; }
+  .event-hint{ color:var(--ink-dim); font-size:.8rem; font-style:italic; margin:-12px 0 20px; }
   .update-title{
     width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
     padding:10px 2px; color:var(--parchment); font-size:1.05rem; margin-bottom:20px;
@@ -271,7 +287,7 @@
             <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Réponses</div></div>
             <div class="stat"><div class="n" id="statYes">0</div><div class="l">Présent(e)s</div></div>
             <div class="stat"><div class="n" id="statNo">0</div><div class="l">Absent(e)s</div></div>
-            <div class="stat"><div class="n" id="statPaid">0</div><div class="l">Payé(e)s · 40 €</div></div>
+            <div class="stat"><div class="n" id="statPaid">0</div><div class="l">Payé(e)s · 40 €</div><div class="l sub-l" id="statPartial"></div></div>
           </div>
 
           <div class="toolbar">
@@ -298,6 +314,43 @@
 
           <p class="foot-note">Rafraîchissement automatique toutes les 30 secondes.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- ---- Event details shown on the invitation ---- -->
+    <div class="section" id="eventSection">
+      <button type="button" class="section-title label collapsible-toggle" id="eventToggle" aria-expanded="false">
+        <span class="toggle-label">📅 Infos de la soirée</span>
+        <span class="chevron">▾</span>
+      </button>
+      <p class="section-sub">Date, heure, lieu et thème affichés sur l'invitation et dans l'espace invité.</p>
+
+      <div class="collapsible-body" id="eventBody" hidden>
+        <div class="event-grid">
+          <div>
+            <label class="label field-label" for="eventDate">Date</label>
+            <input type="text" class="update-title" id="eventDate" placeholder="Samedi 19 décembre 2026">
+          </div>
+          <div>
+            <label class="label field-label" for="eventTime">Heure</label>
+            <input type="text" class="update-title" id="eventTime" placeholder="18h30">
+          </div>
+          <div>
+            <label class="label field-label" for="eventTheme">Thème</label>
+            <input type="text" class="update-title" id="eventTheme" placeholder="Chic & Classy">
+          </div>
+          <div>
+            <label class="label field-label" for="eventSubTheme">Sous-thème</label>
+            <input type="text" class="update-title" id="eventSubTheme" placeholder="Burgundy & Olive Green">
+          </div>
+          <div class="event-wide">
+            <label class="label field-label" for="eventPlace">Lieu</label>
+            <input type="text" class="update-title" id="eventPlace" placeholder="Lieu à venir">
+            <p class="event-hint">Laisser vide pour afficher « Lieu à venir ».</p>
+          </div>
+        </div>
+        <button class="btn btn-narrow" id="eventSaveBtn">Enregistrer les infos</button>
+        <p class="msg-note" id="eventNote"></p>
       </div>
     </div>
 
@@ -404,6 +457,16 @@
   var updatePublishBtn = document.getElementById('updatePublishBtn');
   var updateNote = document.getElementById('updateNote');
 
+  var eventInputs = {
+    date: document.getElementById('eventDate'),
+    heure: document.getElementById('eventTime'),
+    lieu: document.getElementById('eventPlace'),
+    theme: document.getElementById('eventTheme'),
+    sousTheme: document.getElementById('eventSubTheme')
+  };
+  var eventSaveBtn = document.getElementById('eventSaveBtn');
+  var eventNote = document.getElementById('eventNote');
+
   var ADMIN_KEY_STORE = 'cp2_admin_key'; // localStorage : survit même si le lien magique
                                           // s'ouvre dans un nouvel onglet depuis la boîte mail.
   var EMAIL_KEY = 'cp2_admin_email_for_signin';
@@ -446,6 +509,7 @@
     });
   }
   wireCollapsible('rsvpToggle', 'rsvpBody');
+  wireCollapsible('eventToggle', 'eventBody');
   wireCollapsible('santaToggle', 'santaBody');
   wireCollapsible('participantsToggle', 'participantsBody');
 
@@ -569,7 +633,11 @@
   function startPolling(){
     if(pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(function(){
-      fetchRows(getAdminKey()).then(function(data){ rows = data; renderRows(); }).catch(function(){});
+      fetchRows(getAdminKey()).then(function(data){
+        rows = data;
+        // Do not redraw the table while an amount is being typed in it.
+        if(!tbody.contains(document.activeElement)) renderRows();
+      }).catch(function(){});
     }, 30000);
   }
 
@@ -625,10 +693,7 @@
         '<td>' + escapeHtml(r.name || '-') + '</td>' +
         '<td class="mono">' + escapeHtml(r.email || '-') + '</td>' +
         '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '-') + '</span></td>' +
-        '<td>' + (isYes(r)
-          ? '<label class="paid-toggle"><input type="checkbox" class="paid-check" data-date="' + escapeHtml(r.date) + '"' +
-              (isPaid(r) ? ' checked' : '') + (pendingPaid.hasOwnProperty(r.date) ? ' disabled' : '') + '><span>' + (isPaid(r) ? 'Payé' : 'À payer') + '</span></label>'
-          : '-') + '</td>' +
+        '<td>' + (isYes(r) ? renderPayCell(r) : '-') + '</td>' +
         '<td class="msg">' + escapeHtml(r.message || '-') + '</td>' +
         '<td><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
       tbody.appendChild(tr);
@@ -644,33 +709,61 @@
     document.getElementById('statYes').textContent = yes.length;
     document.getElementById('statNo').textContent = no;
     document.getElementById('statPaid').textContent = yes.filter(isPaid).length + ' / ' + yes.length;
+
+    var partial = yes.filter(function(r){ return payInfo(r).status === 'partial'; });
+    var received = yes.reduce(function(sum, r){
+      var info = payInfo(r);
+      return sum + (info.status === 'paid' ? PRICE : (info.status === 'partial' ? info.amount : 0));
+    }, 0);
+    document.getElementById('statPartial').textContent =
+      (partial.length ? '+ ' + partial.length + ' partiel(s) · ' : '') + received + ' € reçus';
   }
 
-  // ---- Paiement des 40 € (case cochée à la main, enregistrée dans la feuille) ----
-  // pendingPaid garde les cases en cours d'enregistrement : le rafraîchissement
-  // automatique (30 s) ne doit pas les faire "sauter" avant la réponse du serveur.
+  // ---- Payment of the 40 € (set by hand, saved in the Google Sheet) ----
+  // pendingPaid keeps the values being saved, so the 30 s auto-refresh does
+  // not reset them before the server answers.
+  var PRICE = 40;
   var pendingPaid = {};
 
-  function isPaid(r){
-    return pendingPaid.hasOwnProperty(r.date) ? pendingPaid[r.date] : r.paid === true;
+  function payInfo(r){
+    if(pendingPaid.hasOwnProperty(r.date)) return pendingPaid[r.date];
+    var status = r.payStatus || (r.paid === true ? 'paid' : 'none');
+    return { status: status, amount: Number(r.paidAmount) || 0 };
   }
 
-  tbody.addEventListener('change', function(e){
-    var box = e.target.closest('.paid-check');
-    if(!box) return;
-    var dateKey = box.getAttribute('data-date');
-    var paid = box.checked;
-    pendingPaid[dateKey] = paid;
+  function isPaid(r){ return payInfo(r).status === 'paid'; }
+
+  function renderPayCell(r){
+    var info = payInfo(r);
+    var busy = pendingPaid.hasOwnProperty(r.date) ? ' disabled' : '';
+    var date = escapeHtml(r.date);
+    function opt(value, label){ return '<option value="' + value + '"' + (info.status === value ? ' selected' : '') + '>' + label + '</option>'; }
+    return '<div class="pay-cell">' +
+      '<select class="pay-status ' + info.status + '" data-date="' + date + '" aria-label="Paiement"' + busy + '>' +
+        opt('none', 'À payer') + opt('partial', 'Partiel') + opt('paid', 'Payé') +
+      '</select>' +
+      (info.status === 'partial'
+        ? '<input type="number" class="pay-amount" data-date="' + date + '" min="0" max="' + PRICE + '" step="1" inputmode="numeric" ' +
+            'value="' + (info.amount || '') + '" placeholder="0" aria-label="Montant reçu"' + busy + '><span class="pay-euro">€</span>'
+        : '') +
+    '</div>';
+  }
+
+  function savePayment(dateKey, status, amount){
+    pendingPaid[dateKey] = { status: status, amount: amount };
     renderRows();
 
     fetch(window.APPS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'setPaid', key: getAdminKey(), date: dateKey, paid: paid })
+      body: JSON.stringify({ action: 'setPaid', key: getAdminKey(), date: dateKey, status: status, amount: amount })
     })
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(!(data && data.ok)) throw new Error((data && data.error) || 'erreur inconnue');
-        rows.forEach(function(r){ if(r.date === dateKey) r.paid = paid; });
+        rows.forEach(function(r){
+          if(r.date !== dateKey) return;
+          r.payStatus = status; r.paidAmount = amount; r.paid = status === 'paid';
+        });
       })
       .catch(function(err){
         window.alert('Paiement non enregistré (' + (err.message || 'problème réseau') + ').');
@@ -679,6 +772,20 @@
         delete pendingPaid[dateKey];
         renderRows();
       });
+  }
+
+  tbody.addEventListener('change', function(e){
+    var select = e.target.closest('.pay-status');
+    var input = e.target.closest('.pay-amount');
+    if(select){
+      var dateKey = select.getAttribute('data-date');
+      var current = rows.filter(function(r){ return r.date === dateKey; })[0];
+      var amount = select.value === 'partial' && current ? (payInfo(current).amount || 0) : 0;
+      savePayment(dateKey, select.value, amount);
+    } else if(input){
+      var value = Math.max(0, Math.min(PRICE, Math.round(Number(input.value) || 0)));
+      savePayment(input.getAttribute('data-date'), 'partial', value);
+    }
   });
 
   tbody.addEventListener('click', function(e){
@@ -716,7 +823,9 @@
     var header = ['Date','Nom','E-mail','Présence','Payé','Message'];
     var lines = [header.join(';')];
     rows.forEach(function(r){
-      lines.push([r.date, r.name, r.email, r.attending, isYes(r) ? (isPaid(r) ? 'Oui' : 'Non') : '', r.message].map(function(v){
+      var info = payInfo(r);
+      var payLabel = !isYes(r) ? '' : (info.status === 'paid' ? 'Oui' : (info.status === 'partial' ? 'Partiel (' + info.amount + ' €)' : 'Non'));
+      lines.push([r.date, r.name, r.email, r.attending, payLabel, r.message].map(function(v){
         return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"';
       }).join(';'));
     });
@@ -726,6 +835,54 @@
     a.href = url; a.download = 'rsvp-christmas-party-2.csv';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  });
+
+  // =====================================================================
+  // ---- Event details (stored in the "Infos" sheet via Apps Script) ----
+  // =====================================================================
+  // Current values on the site, used to pre-fill the fields the first time.
+  var EVENT_DEFAULTS = {
+    date: 'Samedi 19 décembre 2026', heure: '18h30', lieu: '',
+    theme: 'Chic & Classy', sousTheme: 'Burgundy & Olive Green'
+  };
+
+  function loadEvent(){
+    if(!configured()) return;
+    fetch(window.APPS_SCRIPT_URL + '?action=event')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var event = (data && data.ok && data.event) || {};
+        Object.keys(eventInputs).forEach(function(field){
+          eventInputs[field].value = field in event ? event[field] : EVENT_DEFAULTS[field];
+        });
+      })
+      .catch(function(){
+        setNote(eventNote, 'Impossible de charger les infos actuelles.', 'bad');
+      });
+  }
+
+  eventSaveBtn.addEventListener('click', function(){
+    var event = {};
+    Object.keys(eventInputs).forEach(function(field){ event[field] = eventInputs[field].value.trim(); });
+
+    eventSaveBtn.disabled = true;
+    eventSaveBtn.textContent = 'Enregistrement...';
+    fetch(window.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'setEvent', key: getAdminKey(), event: event })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(!(data && data.ok)) throw new Error((data && data.error) || 'erreur inconnue');
+        setNote(eventNote, "Infos enregistrées. Elles s'affichent sur l'invitation et dans l'espace invité.", 'ok');
+      })
+      .catch(function(err){
+        setNote(eventNote, 'Infos non enregistrées (' + (err.message || 'problème réseau') + ').', 'bad');
+      })
+      .finally(function(){
+        eventSaveBtn.disabled = false;
+        eventSaveBtn.textContent = 'Enregistrer les infos';
+      });
   });
 
   // =====================================================================
@@ -1006,6 +1163,7 @@
     whoText.textContent = 'Connecté comme ' + email;
     showGate(null);
     loadRsvp();
+    loadEvent();
     loadGuests();
   });
 

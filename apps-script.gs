@@ -17,9 +17,10 @@
  *     Nommez-la par exemple "RSVP Christmas Party II".
  *  2. Menu Extensions > Apps Script.
  *  3. Supprimez le code par défaut (myFunction...) et collez TOUT ce fichier à la place.
- *  4. Changez la valeur d'ADMIN_KEY ci-dessous par un mot de passe à vous
- *     (c'est ce mot de passe qui protège le tableau de bord admin — gardez-le secret,
- *     ne le partagez qu'avec les personnes qui doivent voir les confirmations).
+ *  4. Paramètres du projet (roue dentée) > Propriétés du script > Ajouter :
+ *     propriété "ADMIN_KEY", valeur = un mot de passe à vous (c'est ce mot de
+ *     passe qui protège le tableau de bord admin, gardez-le secret). Il reste
+ *     en place même quand vous recollez une nouvelle version de ce code.
  *  5. Cliquez sur "Déployer" (bouton bleu en haut à droite) > "Nouveau déploiement".
  *     - Cliquez sur la roue dentée à côté de "Sélectionner le type" > "Application Web".
  *     - Description : ce que vous voulez.
@@ -36,7 +37,10 @@
 
 var SHEET_NAME = 'RSVP';
 var PAIR_SHEET_NAME = 'PairEmails'; // table cachée : jamais exposée à un invité
-var ADMIN_KEY = 'CHANGE_ME'; // placeholder: the real key only lives in the Apps Script editor
+// The real key is stored in the Apps Script project properties (Project
+// settings > Script properties > ADMIN_KEY), never in this file: pasting a new
+// version of the code no longer erases it.
+var ADMIN_KEY = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY') || 'CHANGE_ME';
 var MEMBER_URL = 'https://puremax-lab.github.io/RSVP/member.html';
 
 function doPost(e) {
@@ -51,9 +55,18 @@ function doPost(e) {
     }
 
     // Suivi manuel du paiement des 40 € depuis l'admin (protégé par ADMIN_KEY).
+    // status: 'paid' | 'partial' | 'none' (older clients send paid: true/false).
     if (data.action === 'setPaid') {
       if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
-      return jsonOut_(setPaid_(sheet, data.date, data.paid === true));
+      var status = data.status || (data.paid === true ? 'paid' : 'none');
+      return jsonOut_(setPaid_(sheet, data.date, status, data.amount));
+    }
+
+    // Event details shown on the invitation (date, time, place, theme),
+    // edited from the admin (protected by ADMIN_KEY).
+    if (data.action === 'setEvent') {
+      if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
+      return jsonOut_(setEvent_(data.event));
     }
 
     // Envoi d'un e-mail groupé à une liste d'invités (protégé par ADMIN_KEY).
@@ -133,19 +146,71 @@ function deleteRow_(sheet, dateKey) {
 
 // Colonne 7 ("Payé") : ajoutée après Email, jamais insérée au milieu, pour
 // ne pas décaler les lignes existantes. "Oui" quand le paiement est reçu.
+// Column 8 ("Montant payé") holds the amount received for a partial payment.
 var PAID_COL = 7;
+var AMOUNT_COL = 8;
 
-function setPaid_(sheet, dateKey, paid) {
+function setPaid_(sheet, dateKey, status, amount) {
   if (!sheet.getRange(1, PAID_COL).getValue()) sheet.getRange(1, PAID_COL).setValue('Payé');
+  if (!sheet.getRange(1, AMOUNT_COL).getValue()) sheet.getRange(1, AMOUNT_COL).setValue('Montant payé');
+
+  var label = status === 'paid' ? 'Oui' : (status === 'partial' ? 'Partiel' : '');
+  var value = status === 'partial' ? Math.max(0, Math.round(Number(amount) || 0)) : '';
+
   var values = sheet.getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     var rowDate = values[i][0] instanceof Date ? values[i][0].toISOString() : String(values[i][0]);
     if (rowDate === dateKey) {
-      sheet.getRange(i + 1, PAID_COL).setValue(paid ? 'Oui' : '');
+      sheet.getRange(i + 1, PAID_COL, 1, 2).setValues([[label, value]]);
       return { ok: true };
     }
   }
   return { ok: false, error: 'not_found' };
+}
+
+// ---- Event details (sheet "Infos": one row per field) ----
+var INFO_SHEET_NAME = 'Infos';
+var EVENT_FIELDS = ['date', 'heure', 'lieu', 'theme', 'sousTheme'];
+
+function getInfoSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(INFO_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(INFO_SHEET_NAME);
+    sheet.appendRow(['Champ', 'Valeur']);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getEvent_() {
+  var values = getInfoSheet_().getDataRange().getValues();
+  var event = {};
+  for (var i = 1; i < values.length; i++) {
+    var field = String(values[i][0]);
+    if (EVENT_FIELDS.indexOf(field) !== -1) event[field] = String(values[i][1] || '');
+  }
+  return event;
+}
+
+function setEvent_(event) {
+  if (!event || typeof event !== 'object') return { ok: false, error: 'empty_event' };
+  var sheet = getInfoSheet_();
+  var values = sheet.getDataRange().getValues();
+  var rowByField = {};
+  for (var i = 1; i < values.length; i++) rowByField[String(values[i][0])] = i + 1;
+
+  EVENT_FIELDS.forEach(function (field) {
+    if (!(field in event)) return;
+    var value = String(event[field] || '').trim().slice(0, 150);
+    if (rowByField[field]) {
+      sheet.getRange(rowByField[field], 2).setValue(value);
+    } else {
+      sheet.appendRow([field, value]);
+      rowByField[field] = sheet.getLastRow();
+    }
+  });
+  return { ok: true, event: getEvent_() };
 }
 
 function sendUpdate_(subject, body, recipients) {
@@ -315,6 +380,11 @@ function testerNotification() {
 }
 
 function doGet(e) {
+  // Public: event details for the invitation and the guest space (no key).
+  if (e.parameter.action === 'event') {
+    return jsonOut_({ ok: true, event: getEvent_() });
+  }
+
   var key = e.parameter.key || '';
   if (key !== ADMIN_KEY) {
     return jsonOut_({ error: 'unauthorized' });
@@ -332,7 +402,10 @@ function doGet(e) {
       guests: row[3],
       message: row[4],
       email: row[5] || '',
-      paid: row[PAID_COL - 1] === 'Oui' || row[PAID_COL - 1] === true
+      paid: row[PAID_COL - 1] === 'Oui' || row[PAID_COL - 1] === true,
+      payStatus: row[PAID_COL - 1] === 'Oui' || row[PAID_COL - 1] === true ? 'paid'
+               : (row[PAID_COL - 1] === 'Partiel' ? 'partial' : 'none'),
+      paidAmount: Number(row[AMOUNT_COL - 1]) || 0
     });
   }
   return jsonOut_(out);
@@ -343,7 +416,7 @@ function getSheet_() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['Date', 'Nom', 'Présence', 'Invités', 'Message', 'Email', 'Payé']);
+    sheet.appendRow(['Date', 'Nom', 'Présence', 'Invités', 'Message', 'Email', 'Payé', 'Montant payé']);
     sheet.setFrozenRows(1);
   }
   return sheet;
@@ -362,6 +435,43 @@ function testerEnvoiEmail() {
     name: 'Christmas Party II'
   });
   Logger.log('E-mail de test envoyé à ' + moi + '. Quota restant aujourd\'hui : ' + MailApp.getRemainingDailyQuota());
+}
+
+// One-off, run by hand from the Apps Script editor (separerBernieEtJV > Run):
+// splits the shared "Bernie ... JV" confirmation into two rows. Bernie keeps
+// the original row (and its payment status); JV gets a new row with his own
+// e-mail and the same answer. Safe to run twice: it stops if JV already exists.
+function separerBernieEtJV() {
+  var JV_EMAIL = 'jeanverdier.kiala@gmail.com';
+  var sheet = getSheet_();
+  var values = sheet.getDataRange().getValues();
+
+  for (var j = 1; j < values.length; j++) {
+    if (String(values[j][5] || '').toLowerCase() === JV_EMAIL) {
+      Logger.log('Déjà fait : une confirmation existe déjà pour ' + JV_EMAIL + ' (ligne ' + (j + 1) + ').');
+      return;
+    }
+  }
+
+  for (var i = 1; i < values.length; i++) {
+    var name = String(values[i][1] || '');
+    var lower = name.toLowerCase();
+    if (lower.indexOf('bernie') === -1 || lower.indexOf('jv') === -1) continue;
+
+    var parts = name.split(/\s*(?:&|\+|,|\/|\bet\b|\band\b)\s*/i).filter(function (p) { return p; });
+    var bernie = parts.filter(function (p) { return /bernie/i.test(p); })[0] || parts[0];
+    var jv = parts.filter(function (p) { return /jv/i.test(p); })[0] || 'JV';
+
+    var rowDate = values[i][0] instanceof Date ? values[i][0] : new Date();
+    sheet.getRange(i + 1, 2).setValue(bernie);
+    sheet.getRange(i + 1, 4).setValue(1);
+    // +1 second: the date is the row's identifier in the admin (payment, delete).
+    sheet.appendRow([new Date(rowDate.getTime() + 1000), jv, values[i][2], 1, '', JV_EMAIL]);
+
+    Logger.log('Ligne ' + (i + 1) + ' "' + name + '" séparée en "' + bernie + '" et "' + jv + '" (' + JV_EMAIL + ').');
+    return;
+  }
+  Logger.log('Aucune confirmation contenant à la fois "Bernie" et "JV" trouvée.');
 }
 
 function jsonOut_(obj) {

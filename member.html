@@ -329,9 +329,9 @@
     <p class="modal-sub">Vous avez confirmé votre présence... maintenant, place à la suite. 👀</p>
 
     <div class="modal-meta">
-      <p>📅 Samedi 19 décembre 2026</p>
-      <p>🕡 18h30</p>
-      <p>📍 Le lieu vous sera dévoilé prochainement...</p>
+      <p id="welcomeDate">📅 Samedi 19 décembre 2026</p>
+      <p id="welcomeTime">🕡 18h30</p>
+      <p id="welcomePlace">📍 Le lieu vous sera dévoilé prochainement...</p>
     </div>
 
     <p class="modal-text">Cette année, on a vraiment voulu voir les choses plus grand pour vous préparer une Christmas Party encore plus belle, chaleureuse et mémorable. 🤍</p>
@@ -941,6 +941,21 @@
       updatesList.innerHTML = renderAnnouncements(fixedAnnouncements()) + '<p class="empty-note">Impossible de charger les annonces.</p>';
     });
   }
+
+  // ---- Event details edited from the admin, shown in the welcome pop-up ----
+  (function loadEventDetails(){
+    if(!window.APPS_SCRIPT_URL) return;
+    fetch(window.APPS_SCRIPT_URL + '?action=event')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var ev = data && data.ok && data.event;
+        if(!ev) return;
+        if(ev.date) document.getElementById('welcomeDate').textContent = '📅 ' + ev.date;
+        if(ev.heure) document.getElementById('welcomeTime').textContent = '🕡 ' + ev.heure;
+        if(ev.lieu) document.getElementById('welcomePlace').textContent = '📍 ' + ev.lieu;
+      })
+      .catch(function(){ /* keep the built-in values */ });
+  })();
 
   // ---- Pop-up de bienvenue (une seule fois, jusqu'à réponse) ----
   function maybeShowWelcome(user, profile){

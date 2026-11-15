@@ -327,7 +327,7 @@
     <h1 class="wordmark">Christmas Party<span class="numeral">II</span></h1>
     <p class="tagline">Bigger. Better. Full of Christmas joy.</p>
 
-    <p class="date-line label">Samedi 19 Décembre 2026</p>
+    <p class="date-line label" id="heroDate">Samedi 19 Décembre 2026</p>
     <p class="hosts">Kisha <span class="amp">&amp;</span> Esthy</p>
 
     <div class="hero-actions">
@@ -352,15 +352,15 @@
   <section class="details">
     <div class="detail">
       <p class="label">Quand</p>
-      <p class="value">Samedi 19 décembre 2026<br>à 18h30</p>
+      <p class="value" id="eventWhen">Samedi 19 décembre 2026<br>à 18h30</p>
     </div>
     <div class="detail">
       <p class="label">Où</p>
-      <p class="value">Lieu à venir</p>
+      <p class="value" id="eventWhere">Lieu à venir</p>
     </div>
     <div class="detail">
       <p class="label">Thème</p>
-      <p class="value">Chic &amp; Classy<br><span class="value-sub">Burgundy &amp; Olive Green</span></p>
+      <p class="value" id="eventTheme">Chic &amp; Classy<br><span class="value-sub">Burgundy &amp; Olive Green</span></p>
     </div>
   </section>
 
@@ -517,6 +517,29 @@
   } else if(introOverlay){
     introOverlay.classList.add('hidden');
   }
+
+  // ---- Event details edited from the admin (date, time, place, theme) ----
+  // The page shows its built-in values first, then the saved ones if any.
+  (function loadEventDetails(){
+    if(!window.APPS_SCRIPT_URL || window.APPS_SCRIPT_URL.indexOf('COLLEZ_ICI') !== -1) return;
+    function esc(v){ return String(v).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    fetch(window.APPS_SCRIPT_URL + '?action=event')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var ev = data && data.ok && data.event;
+        if(!ev) return;
+        if(ev.date){
+          document.getElementById('heroDate').textContent = ev.date;
+          document.getElementById('eventWhen').innerHTML = esc(ev.date) + (ev.heure ? '<br>à ' + esc(ev.heure) : '');
+        }
+        if('lieu' in ev) document.getElementById('eventWhere').textContent = ev.lieu || 'Lieu à venir';
+        if(ev.theme){
+          document.getElementById('eventTheme').innerHTML = esc(ev.theme) +
+            (ev.sousTheme ? '<br><span class="value-sub">' + esc(ev.sousTheme) + '</span>' : '');
+        }
+      })
+      .catch(function(){ /* keep the built-in values */ });
+  })();
 
   // ---- Modal / RSVP ----
   var overlay = document.getElementById('modalOverlay');

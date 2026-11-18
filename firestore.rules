@@ -32,6 +32,15 @@ service cloud.firestore {
       ];
     }
 
+    // Wishlist: at most 3 gift ideas, each a short text.
+    function validWish(wl, i) {
+      return wl.size() <= i || (wl[i] is string && wl[i].size() <= 150);
+    }
+    function validWishlist(wl) {
+      return wl is list && wl.size() <= 3
+        && validWish(wl, 0) && validWish(wl, 1) && validWish(wl, 2);
+    }
+
     function isPairMember(pairId) {
       return isSignedIn() && (
         pairId.split('_')[0] == request.auth.uid ||
@@ -68,15 +77,19 @@ service cloud.firestore {
       // répondre à la pop-up de bienvenue (onboarded), et marquer les annonces /
       // messages comme vus (lastSeenUpdatesAt, givingLastSeenAt,
       // receivingLastSeenAt — utilisés uniquement pour afficher un badge "nouveau"
-      // côté client, aucune donnée sensible). Le tirage au sort (santaForUid /
+      // côté client, aucune donnée sensible) et sa liste de souhaits (wishlist,
+      // 3 idées max, lisible par la personne qui lui offre un cadeau).
+      // Le tirage au sort (santaForUid /
       // receivingThreadId) n'est modifiable que par un admin.
       // Une fois le tirage fait (binôme attribué), l'invité ne peut plus
       // modifier sa participation : se retirer casserait la chaîne des binômes.
       allow update: if isAdmin()
                     || (isSignedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded', 'lastSeenUpdatesAt', 'givingLastSeenAt', 'receivingLastSeenAt'])
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'wantsSanta', 'onboarded', 'lastSeenUpdatesAt', 'givingLastSeenAt', 'receivingLastSeenAt', 'wishlist'])
                         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['wantsSanta'])
-                            || !('santaForUid' in resource.data)));
+                            || !('santaForUid' in resource.data))
+                        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['wishlist'])
+                            || validWishlist(request.resource.data.wishlist)));
 
       allow delete: if isAdmin();
     }

@@ -129,6 +129,22 @@
   .santa-card{ border:1px solid var(--line); border-radius:6px; padding:20px 20px 22px; text-align:center; }
   .santa-card p.lead{ font-size:1.02rem; }
 
+  /* ---- Wishlist (3 gift ideas) ---- */
+  .wishlist-form{ display:flex; flex-direction:column; gap:10px; }
+  .wishlist-form label{ display:flex; align-items:center; gap:10px; }
+  .wishlist-form .wish-num{ flex-shrink:0; width:22px; height:22px; border-radius:50%; border:1px solid var(--gold-dim); color:var(--gold); font-family:'Marcellus',serif; font-size:.7rem; display:flex; align-items:center; justify-content:center; }
+  .wishlist-form input{
+    flex:1; min-width:0; background:transparent; border:none; border-bottom:1px solid var(--line);
+    padding:8px 2px; color:var(--parchment); font-size:1rem; text-align:left;
+  }
+  .wishlist-form input:focus{ outline:none; border-color:var(--gold); }
+  .wishlist-form .btn{ margin-top:12px; }
+  .wishlist-hint{ color:var(--ink-dim); font-size:.88rem; font-style:italic; margin-bottom:12px; }
+  .their-wishlist{ margin-top:16px; border:1px solid var(--line); border-radius:4px; padding:12px 14px; }
+  .their-wishlist .label{ font-size:.58rem; color:var(--gold); display:block; margin-bottom:8px; }
+  .their-wishlist ol{ margin:0; padding-left:20px; color:var(--parchment); line-height:1.6; }
+  .their-wishlist .empty-note{ margin:0; }
+
   .thread{ margin-top:18px; }
   .thread-log{
     max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:4px;
@@ -277,6 +293,24 @@
       </div>
 
       <div id="santaActiveCard" hidden>
+        <!-- My wishlist: editable before and after the draw -->
+        <div style="margin-bottom:30px;">
+          <button type="button" class="section-title label collapsible-toggle" id="wishlistToggle" aria-expanded="false" style="font-size:.6rem;">
+            <span class="toggle-label">Ma liste de souhaits</span>
+            <span class="chevron">▾</span>
+          </button>
+          <div class="collapsible-body" id="wishlistBody" hidden>
+            <p class="wishlist-hint">Jusqu'à 3 idées de cadeaux. Ton Secret Santa les verra, et tu peux les modifier à tout moment, même après le tirage.</p>
+            <form class="wishlist-form" id="wishlistForm">
+              <label><span class="wish-num">1</span><input type="text" id="wish1" maxlength="150" placeholder="Idée de cadeau n°1"></label>
+              <label><span class="wish-num">2</span><input type="text" id="wish2" maxlength="150" placeholder="Idée de cadeau n°2"></label>
+              <label><span class="wish-num">3</span><input type="text" id="wish3" maxlength="150" placeholder="Idée de cadeau n°3"></label>
+              <button type="submit" class="btn small" id="wishlistSaveBtn">Enregistrer ma liste</button>
+            </form>
+            <p class="msg-note" id="wishlistNote"></p>
+          </div>
+        </div>
+
         <div id="givingThread2">
           <button type="button" class="section-title label collapsible-toggle giving-toggle" id="givingToggle" aria-expanded="false" style="font-size:.6rem;">
             <span class="toggle-label">Tu offres à <span class="unread-badge" id="givingBadge" hidden>Nouveau</span></span>
@@ -284,6 +318,10 @@
           </button>
           <div class="collapsible-body" id="givingBody" hidden>
             <p class="lead" id="givingLead">-</p>
+            <div class="their-wishlist" id="theirWishlist" hidden>
+              <span class="label">Ses idées de cadeaux</span>
+              <div id="theirWishlistItems"></div>
+            </div>
             <div class="thread" id="givingThread" hidden>
               <div class="thread-log" id="givingLog"></div>
               <form class="thread-form" id="givingForm">
@@ -399,6 +437,15 @@
   var santaLeaveBtn = document.getElementById('santaLeaveBtn');
   var santaLeaveRow = document.getElementById('santaLeaveRow');
   var santaOptNote = document.getElementById('santaOptNote');
+
+  var wishlistForm = document.getElementById('wishlistForm');
+  var wishlistSaveBtn = document.getElementById('wishlistSaveBtn');
+  var wishlistNote = document.getElementById('wishlistNote');
+  var wishInputs = [document.getElementById('wish1'), document.getElementById('wish2'), document.getElementById('wish3')];
+  var theirWishlist = document.getElementById('theirWishlist');
+  var theirWishlistItems = document.getElementById('theirWishlistItems');
+  // Live listener on the recipient's profile (name + wishlist), one at a time.
+  var recipientWatch = { uid: null, unsub: null };
 
   var givingLead = document.getElementById('givingLead');
   var givingThread = document.getElementById('givingThread');
@@ -754,17 +801,22 @@
     // l'option n'est plus proposée (elle revient si le tirage est réinitialisé).
     santaLeaveRow.hidden = hasDrawAssignment(profile);
 
+    fillMyWishlist(profile);
+
     // -- Tu offres à... --
     var recipientUid = profile.santaForUid || null;
     if(recipientUid){
       // Tirages récents : fil propre au tirage (givingThreadId). Ancien
       // format (avant cette version) : fil déduit des deux uid.
       var givingPid = profile.givingThreadId || pairId(user.uid, recipientUid);
-      db.collection('guests').doc(recipientUid).get().then(function(snap){
+      // Live: the recipient's wishlist updates as soon as they change it.
+      watchRecipient(recipientUid, function(snap){
         // Le tirage a pu changer pendant le chargement du nom.
         if(!currentProfile || currentProfile.santaForUid !== recipientUid) return;
-        var recipientName = snap.exists ? snap.data().name : 'ton invité(e)';
+        var data = snap.exists ? snap.data() : {};
+        var recipientName = data.name || 'ton invité(e)';
         givingLead.innerHTML = 'Tu offres un cadeau à <strong>' + escapeHtml(recipientName) + '</strong>. Vous pouvez discuter ici pour avoir des idées (par exemple sa liste de souhaits).';
+        renderTheirWishlist(data.wishlist);
         givingThread.hidden = false;
         setThread('giving', givingPid, givingLog, givingBadge, function(){
           return renderThread(givingLog, givingPid, user.uid, 'Toi', recipientName, {
@@ -775,6 +827,8 @@
     } else {
       givingLead.textContent = 'Le tirage au sort n\'a pas encore eu lieu, reviens un peu plus tard.';
       givingThread.hidden = true;
+      theirWishlist.hidden = true;
+      watchRecipient(null);
       setThread('giving', null, givingLog, givingBadge);
     }
 
@@ -794,6 +848,55 @@
       setThread('receiving', null, receivingLog, receivingBadge);
     }
   }
+
+  // ---- Wishlist (up to 3 gift ideas, editable before and after the draw) ----
+  function cleanWishlist(list){
+    return (Array.isArray(list) ? list : [])
+      .map(function(item){ return String(item || '').trim().slice(0, 150); })
+      .filter(function(item){ return item; })
+      .slice(0, 3);
+  }
+
+  // Fill my own fields from the profile, unless I am typing in them.
+  function fillMyWishlist(profile){
+    if(wishInputs.indexOf(document.activeElement) !== -1) return;
+    var list = cleanWishlist(profile && profile.wishlist);
+    wishInputs.forEach(function(input, i){ input.value = list[i] || ''; });
+  }
+
+  function renderTheirWishlist(list){
+    var items = cleanWishlist(list);
+    theirWishlist.hidden = false;
+    theirWishlistItems.innerHTML = items.length
+      ? '<ol>' + items.map(function(item){ return '<li>' + escapeHtml(item) + '</li>'; }).join('') + '</ol>'
+      : '<p class="empty-note">Pas encore d\'idées renseignées.</p>';
+  }
+
+  function watchRecipient(uid, onData){
+    if(recipientWatch.uid === uid && uid) return;
+    if(recipientWatch.unsub) recipientWatch.unsub();
+    recipientWatch = { uid: uid, unsub: null };
+    if(!uid) return;
+    recipientWatch.unsub = db.collection('guests').doc(uid).onSnapshot(onData, function(){
+      givingLead.textContent = 'Impossible de charger ton binôme pour le moment.';
+    });
+  }
+
+  wishlistForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!auth.currentUser) return;
+    var list = cleanWishlist(wishInputs.map(function(input){ return input.value; }));
+    wishlistSaveBtn.disabled = true;
+    db.collection('guests').doc(auth.currentUser.uid).update({ wishlist: list }).then(function(){
+      if(currentProfile) currentProfile.wishlist = list;
+      wishInputs.forEach(function(input, i){ input.value = list[i] || ''; });
+      setNote(wishlistNote, list.length ? 'Liste enregistrée.' : 'Liste vidée.', 'ok');
+    }).catch(function(err){
+      setNote(wishlistNote, 'Erreur : ' + (err.message || err), 'bad');
+    }).finally(function(){
+      wishlistSaveBtn.disabled = false;
+    });
+  });
 
   function setWantsSanta(user, value){
     return db.collection('guests').doc(user.uid).update({ wantsSanta: value });
@@ -1002,6 +1105,7 @@
   // Annonces : ouvrir la section ne marque rien comme lu, chaque annonce
   // perd son "Nouveau" quand on l'ouvre.
   wireCollapsible('updatesToggle', 'updatesBody');
+  wireCollapsible('wishlistToggle', 'wishlistBody');
   wireCollapsible('givingToggle', 'givingBody', function(){
     givingBadge.hidden = true;
     markSeenLocal('givingLastSeenAt');
@@ -1035,6 +1139,7 @@
     activeUnsubs.forEach(function(u){ u(); });
     activeUnsubs = [];
     stopThreads();
+    watchRecipient(null);
     lastSantaKey = null;
   }
 

@@ -73,6 +73,7 @@
   .msg-note{ font-size:.82rem; margin-top:14px; min-height:1.2em; font-style:italic; text-align:center; }
   .msg-note.ok{ color:var(--ok); }
   .msg-note.bad{ color:var(--bad); }
+  .msg-note .rsvp-link{ display:inline-block; width:auto; margin-top:14px; text-decoration:none; font-style:normal; }
 
   [hidden]{ display:none !important; }
 
@@ -588,6 +589,26 @@
   }
 
   // ---- Étape 1 : envoyer le lien magique ----
+  // Before sending a link: the e-mail must have confirmed its presence on the
+  // invitation. Organizers are always allowed. If the check itself fails
+  // (network, script down), the link is sent anyway so nobody gets locked out.
+  function checkRegistered(email){
+    var lower = email.toLowerCase();
+    if((window.ADMIN_EMAILS || []).map(function(e){ return e.toLowerCase(); }).indexOf(lower) !== -1) return Promise.resolve(true);
+    if(!window.APPS_SCRIPT_URL) return Promise.resolve(true);
+    return fetch(window.APPS_SCRIPT_URL + '?action=checkEmail&email=' + encodeURIComponent(lower))
+      .then(function(r){ return r.json(); })
+      .then(function(data){ return !(data && data.ok && data.registered === false); })
+      .catch(function(){ return true; });
+  }
+
+  function showNotRegistered(email){
+    loginNote.className = 'msg-note bad';
+    loginNote.innerHTML = "Cette adresse n'a pas encore confirmé sa présence. " +
+      'Commence par confirmer ta présence avec cette même adresse e-mail, puis reviens ici.' +
+      '<br><a class="btn small rsvp-link" href="index.html?email=' + encodeURIComponent(email) + '#rsvp">Confirmer ma présence</a>';
+  }
+
   sendLinkBtn.addEventListener('click', function(){
     var email = emailInput.value.trim();
     if(!email){ setNote(loginNote, 'Entre ton adresse e-mail.', 'bad'); return; }
@@ -600,15 +621,25 @@
       handleCodeInApp: true
     };
 
-    auth.sendSignInLinkToEmail(email, actionCodeSettings).then(function(){
-      window.localStorage.setItem(EMAIL_KEY, email);
-      setNote(loginNote, 'Lien envoyé ! Vérifie ta boîte mail (et tes spams) et clique dessus pour te connecter.', 'ok');
-    }).catch(function(err){
-      setNote(loginNote, 'Erreur : ' + (err.message || err), 'bad');
+    checkRegistered(email).then(function(registered){
+      if(!registered){
+        showNotRegistered(email);
+        return;
+      }
+      return sendLink();
     }).finally(function(){
       sendLinkBtn.disabled = false;
       sendLinkBtn.textContent = 'Recevoir mon lien de connexion';
     });
+
+    function sendLink(){
+    return auth.sendSignInLinkToEmail(email, actionCodeSettings).then(function(){
+      window.localStorage.setItem(EMAIL_KEY, email);
+      setNote(loginNote, 'Lien envoyé ! Vérifie ta boîte mail (et tes spams) et clique dessus pour te connecter.', 'ok');
+    }).catch(function(err){
+      setNote(loginNote, 'Erreur : ' + (err.message || err), 'bad');
+    });
+    }
   });
 
   // ---- Étape 2 : si on arrive via le lien magique, finaliser la connexion ----

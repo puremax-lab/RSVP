@@ -583,6 +583,17 @@
   });
 
   openBtns.forEach(function(b){ b.addEventListener('click', openModal); });
+
+  // Coming from the guest space (index.html?email=...#rsvp): skip the intro,
+  // open the form straight away and pre-fill the e-mail.
+  if(window.location.hash === '#rsvp'){
+    if(introOverlay){ introOverlay.classList.add('hidden'); document.body.classList.remove('intro-active'); }
+    openModal();
+    try{
+      var qEmail = new URLSearchParams(window.location.search).get('email');
+      if(qEmail) document.getElementById('femail').value = qEmail;
+    }catch(e){ /* very old browser: the guest types it */ }
+  }
   closeBtn.addEventListener('click', closeModal);
   closeThanks.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });

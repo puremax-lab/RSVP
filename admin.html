@@ -372,7 +372,7 @@
           <div class="table-wrap">
             <table id="santaTable">
               <thead>
-                <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th></tr>
+                <tr><th>Nom</th><th>Email</th><th>Participe</th><th>Offre à</th><th>Reçoit de</th><th></th></tr>
               </thead>
               <tbody id="santaTbody"></tbody>
             </table>
@@ -933,7 +933,8 @@
         '<td class="mono">' + escapeHtml(g.email) + '</td>' +
         '<td><span class="status ' + (g.wantsSanta ? 'yes' : 'no') + '">' + (g.wantsSanta ? 'Oui' : 'Non') + '</span></td>' +
         '<td>' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '-') + '</td>' +
-        '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '-') + '</td>';
+        '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '-') + '</td>' +
+        '<td>' + (g.wantsSanta ? '<button class="btn-delete santa-remove" data-uid="' + escapeHtml(g.uid) + '">Ne participe plus</button>' : '') + '</td>';
       santaTbody.appendChild(tr);
     });
     santaEmptyMsg.style.display = guestsCache.length ? 'none' : 'block';
@@ -977,6 +978,62 @@
     var del = firebase.firestore.FieldValue.delete();
     return { santaForUid: del, givingThreadId: del, receivingThreadId: del };
   }
+
+  // ---- Remove one person from the Secret Santa ----
+  // If the draw is already done, the chain is repaired instead of redrawn:
+  // the person who gave to them now gives to their recipient. Nobody else's
+  // pair changes; only that new pair starts a fresh conversation.
+  santaTbody.addEventListener('click', function(e){
+    var btn = e.target.closest('.santa-remove');
+    if(!btn) return;
+    var person = guestsCache.filter(function(g){ return g.uid === btn.getAttribute('data-uid'); })[0];
+    if(!person) return;
+
+    var giver = guestsCache.filter(function(g){ return g.santaForUid === person.uid; })[0] || null;
+    var recipient = guestsCache.filter(function(g){ return g.uid === person.santaForUid; })[0] || null;
+    var drawn = hasAssignment(person);
+    // In a chain of two, the giver would end up giving to themselves.
+    var relink = drawn && giver && recipient && giver.uid !== recipient.uid;
+
+    var message = person.name + ' ne participe plus au Secret Santa ?' +
+      '\n\nSa confirmation de présence à la soirée et son espace invité ne changent pas.';
+    if(relink){
+      message += '\n\n' + giver.name + ' offrira désormais à ' + recipient.name + ' (nouvelle conversation pour eux deux). Les autres binômes ne changent pas.';
+    } else if(drawn){
+      message += "\n\nSon binôme sera aussi retiré du tirage : il faudra relancer le tirage pour lui en attribuer un.";
+    }
+    if(!window.confirm(message)) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    var batch = db.batch();
+    var personPatch = clearAssignmentPatch();
+    personPatch.wantsSanta = false;
+    batch.update(db.collection('guests').doc(person.uid), personPatch);
+
+    var pairRows = [];
+    if(relink){
+      var pid = threadId(giver.uid, recipient.uid, Date.now().toString(36));
+      batch.update(db.collection('guests').doc(giver.uid), { santaForUid: recipient.uid, givingThreadId: pid });
+      batch.update(db.collection('guests').doc(recipient.uid), { receivingThreadId: pid });
+      pairRows.push({ pairId: pid, emailA: giver.email, emailB: recipient.email });
+    } else if(drawn){
+      var del = firebase.firestore.FieldValue.delete();
+      if(giver) batch.update(db.collection('guests').doc(giver.uid), { santaForUid: del, givingThreadId: del });
+      if(recipient) batch.update(db.collection('guests').doc(recipient.uid), { receivingThreadId: del });
+    }
+
+    batch.commit().then(function(){
+      return pairRows.length ? registerPairEmailsOnBackend_(pairRows) : '';
+    }).then(function(backendNote){
+      setNote(santaDrawNote, person.name + ' ne participe plus au Secret Santa (sa présence à la soirée est conservée).' + (backendNote ? ' ' + backendNote : ''), 'ok');
+      return loadGuests();
+    }).catch(function(err){
+      setNote(santaDrawNote, 'Erreur : ' + (err.message || err), 'bad');
+      btn.disabled = false;
+      btn.textContent = 'Ne participe plus';
+    });
+  });
 
   // ---- Réinitialisation : efface tous les binômes (retour à l'état d'avant tirage) ----
   santaResetBtn.addEventListener('click', function(){

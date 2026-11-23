@@ -100,8 +100,16 @@ function doPost(e) {
     if (!name) return jsonOut_({ ok: false, error: 'empty_name' });
 
     // Un(e) même invité(e) (prénom + nom, insensible à la casse) ne peut
-    // pas s'inscrire deux fois.
-    if (isDuplicate_(sheet, name)) {
+    // pas s'inscrire deux fois. Exception: a confirmation saved before the
+    // e-mail field existed has no address yet; answering again with the same
+    // name fills it in, so that guest can then open their guest space.
+    var existingRow = findRowByName_(sheet, name);
+    if (existingRow) {
+      var newEmail = String(data.email || '').trim().toLowerCase().slice(0, 200);
+      if (newEmail && !String(sheet.getRange(existingRow, 6).getValue() || '').trim()) {
+        sheet.getRange(existingRow, 6).setValue(newEmail);
+        return jsonOut_({ ok: true, emailAdded: true });
+      }
       return jsonOut_({ ok: false, duplicate: true });
     }
 
@@ -122,12 +130,25 @@ function doPost(e) {
   }
 }
 
-function isDuplicate_(sheet, name) {
+// Returns the sheet row number (1-based) of the guest with this name, or 0.
+function findRowByName_(sheet, name) {
   var normalized = name.toLowerCase().replace(/\s+/g, ' ').trim();
   var values = sheet.getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     var existing = String(values[i][1] || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    if (existing === normalized) return true;
+    if (existing === normalized) return i + 1;
+  }
+  return 0;
+}
+
+// True when this e-mail has answered the RSVP (used before sending a
+// guest-space sign-in link). Only answers yes/no, never returns any data.
+function isEmailRegistered_(email) {
+  email = String(email || '').trim().toLowerCase();
+  if (!email) return false;
+  var values = getSheet_().getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][5] || '').trim().toLowerCase() === email) return true;
   }
   return false;
 }
@@ -383,6 +404,11 @@ function doGet(e) {
   // Public: event details for the invitation and the guest space (no key).
   if (e.parameter.action === 'event') {
     return jsonOut_({ ok: true, event: getEvent_() });
+  }
+
+  // Public: has this e-mail confirmed its presence? (yes/no only)
+  if (e.parameter.action === 'checkEmail') {
+    return jsonOut_({ ok: true, registered: isEmailRegistered_(e.parameter.email) });
   }
 
   var key = e.parameter.key || '';

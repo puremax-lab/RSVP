@@ -301,11 +301,12 @@
             <span class="chevron">▾</span>
           </button>
           <div class="collapsible-body" id="wishlistBody" hidden>
-            <p class="wishlist-hint">Jusqu'à 3 idées de cadeaux. Ton Secret Santa les verra, et tu peux les modifier à tout moment, même après le tirage.</p>
+            <p class="wishlist-hint">Jusqu'à 4 idées de cadeaux. Ton Secret Santa les verra, et tu peux les modifier à tout moment, même après le tirage.</p>
             <form class="wishlist-form" id="wishlistForm">
               <label><span class="wish-num">1</span><input type="text" id="wish1" maxlength="150" placeholder="Idée de cadeau n°1"></label>
               <label><span class="wish-num">2</span><input type="text" id="wish2" maxlength="150" placeholder="Idée de cadeau n°2"></label>
               <label><span class="wish-num">3</span><input type="text" id="wish3" maxlength="150" placeholder="Idée de cadeau n°3"></label>
+              <label><span class="wish-num">4</span><input type="text" id="wish4" maxlength="150" placeholder="Idée de cadeau n°4"></label>
               <button type="submit" class="btn small" id="wishlistSaveBtn">Enregistrer ma liste</button>
             </form>
             <p class="msg-note" id="wishlistNote"></p>
@@ -442,7 +443,7 @@
   var wishlistForm = document.getElementById('wishlistForm');
   var wishlistSaveBtn = document.getElementById('wishlistSaveBtn');
   var wishlistNote = document.getElementById('wishlistNote');
-  var wishInputs = [document.getElementById('wish1'), document.getElementById('wish2'), document.getElementById('wish3')];
+  var wishInputs = [document.getElementById('wish1'), document.getElementById('wish2'), document.getElementById('wish3'), document.getElementById('wish4')];
   var theirWishlist = document.getElementById('theirWishlist');
   var theirWishlistItems = document.getElementById('theirWishlistItems');
   // Live listener on the recipient's profile (name + wishlist), one at a time.
@@ -885,7 +886,7 @@
     return (Array.isArray(list) ? list : [])
       .map(function(item){ return String(item || '').trim().slice(0, 150); })
       .filter(function(item){ return item; })
-      .slice(0, 3);
+      .slice(0, 4);
   }
 
   // Fill my own fields from the profile, unless I am typing in them.

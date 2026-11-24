@@ -32,13 +32,13 @@ service cloud.firestore {
       ];
     }
 
-    // Wishlist: at most 3 gift ideas, each a short text.
+    // Wishlist: at most 4 gift ideas, each a short text.
     function validWish(wl, i) {
       return wl.size() <= i || (wl[i] is string && wl[i].size() <= 150);
     }
     function validWishlist(wl) {
-      return wl is list && wl.size() <= 3
-        && validWish(wl, 0) && validWish(wl, 1) && validWish(wl, 2);
+      return wl is list && wl.size() <= 4
+        && validWish(wl, 0) && validWish(wl, 1) && validWish(wl, 2) && validWish(wl, 3);
     }
 
     function isPairMember(pairId) {
@@ -78,7 +78,7 @@ service cloud.firestore {
       // messages comme vus (lastSeenUpdatesAt, givingLastSeenAt,
       // receivingLastSeenAt — utilisés uniquement pour afficher un badge "nouveau"
       // côté client, aucune donnée sensible) et sa liste de souhaits (wishlist,
-      // 3 idées max, lisible par la personne qui lui offre un cadeau).
+      // 4 idées max, lisible par la personne qui lui offre un cadeau).
       // Le tirage au sort (santaForUid /
       // receivingThreadId) n'est modifiable que par un admin.
       // Une fois le tirage fait (binôme attribué), l'invité ne peut plus

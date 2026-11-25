@@ -76,6 +76,7 @@
   .head-actions{ display:flex; flex-wrap:wrap; gap:10px; }
 
   .section{ margin-top:56px; padding-top:38px; border-top:1px solid var(--line); }
+  .dash-head + .section{ margin-top:0; padding-top:26px; }
   .section:first-of-type{ margin-top:0; padding-top:0; border-top:none; }
   .section-title{ font-size:.68rem; color:var(--gold); margin-bottom:20px; display:flex; align-items:center; gap:9px; }
   .section-sub{ color:var(--ink-dim); font-size:.85rem; font-style:italic; margin-bottom:22px; }
@@ -195,6 +196,26 @@
   .btn-narrow{ max-width:320px; display:block; }
 
   /* ---- Petits écrans (iPhone SE, anciens Android, ~320-380px) ---- */
+  @media (max-width:640px){
+    .section{ margin-top:36px; padding-top:26px; }
+    .dash-head{ margin-bottom:22px; }
+    .table-wrap{ overflow-x:visible; border-top:none; }
+    table{ min-width:0; }
+    thead{ display:none; }
+    tbody tr{ display:block; border:1px solid var(--line); border-radius:6px; padding:10px 14px; margin-bottom:12px; }
+    tbody td{
+      display:flex; align-items:center; justify-content:space-between; gap:14px;
+      padding:7px 0; border:none; white-space:normal; text-align:right; overflow-wrap:anywhere;
+    }
+    tbody td::before{
+      content:attr(data-label); flex-shrink:0; text-align:left;
+      font-family:'Marcellus', serif; font-style:normal; text-transform:uppercase; letter-spacing:.1em; font-size:.6rem; color:var(--gold);
+    }
+    tbody td.row-actions{ justify-content:flex-end; padding-top:10px; }
+    tbody td.row-actions::before{ content:none; }
+    td.msg{ max-width:none; }
+  }
+
   @media (max-width:380px){
     .wrap{ padding-left:max(14px, env(safe-area-inset-left)); padding-right:max(14px, env(safe-area-inset-right)); padding-top:36px; }
     .login-card h1{ font-size:1.42rem; }
@@ -369,6 +390,9 @@
           <span class="chevron">▾</span>
         </button>
         <div id="participantsBody" hidden>
+          <div class="toolbar">
+            <input type="search" id="santaSearch" placeholder="Rechercher un nom...">
+          </div>
           <div class="table-wrap">
             <table id="santaTable">
               <thead>
@@ -447,6 +471,7 @@
   var santaTbody = document.getElementById('santaTbody');
   var santaParticipantsNote = document.getElementById('santaParticipantsNote');
   var santaEmptyMsg = document.getElementById('santaEmptyMsg');
+  var santaSearch = document.getElementById('santaSearch');
   var santaDrawBtn = document.getElementById('santaDrawBtn');
   var santaDrawNote = document.getElementById('santaDrawNote');
   var santaResetBtn = document.getElementById('santaResetBtn');
@@ -689,13 +714,13 @@
       var d = r.date ? new Date(r.date) : null;
       var dateStr = d && !isNaN(d) ? d.toLocaleDateString('fr-BE', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' + d.toLocaleTimeString('fr-BE', {hour:'2-digit', minute:'2-digit'}) : '-';
       tr.innerHTML =
-        '<td class="mono">' + dateStr + '</td>' +
-        '<td>' + escapeHtml(r.name || '-') + '</td>' +
-        '<td class="mono">' + escapeHtml(r.email || '-') + '</td>' +
-        '<td><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '-') + '</span></td>' +
-        '<td>' + (isYes(r) ? renderPayCell(r) : '-') + '</td>' +
-        '<td class="msg">' + escapeHtml(r.message || '-') + '</td>' +
-        '<td><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
+        '<td class="mono" data-label="Date">' + dateStr + '</td>' +
+        '<td data-label="Nom">' + escapeHtml(r.name || '-') + '</td>' +
+        '<td class="mono" data-label="E-mail">' + escapeHtml(r.email || '-') + '</td>' +
+        '<td data-label="Présence"><span class="status ' + (isYes(r) ? 'yes' : 'no') + '">' + escapeHtml(r.attending || '-') + '</span></td>' +
+        '<td data-label="Payé (40 €)">' + (isYes(r) ? renderPayCell(r) : '-') + '</td>' +
+        '<td class="msg" data-label="Message">' + escapeHtml(r.message || '-') + '</td>' +
+        '<td class="row-actions"><button class="btn-delete" data-date="' + escapeHtml(r.date) + '">Supprimer</button></td>';
       tbody.appendChild(tr);
     });
 
@@ -846,6 +871,21 @@
     theme: 'Chic & Classy', sousTheme: 'Burgundy & Olive Green'
   };
 
+  // A date saved by Google Sheets can come back as a raw JavaScript date
+  // ("Sat Dec 19 2026 00:00:00 GMT+0100 ..."): show it in French instead.
+  function readableEventValue(value){
+    var v = String(value || '');
+    if(!/^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{4} \d{2}:\d{2}:\d{2} GMT/.test(v)) return v;
+    // A time alone is stored on 30/12/1899: read the hours from the text
+    // (the historical time zone of that year would shift the minutes).
+    var time = v.match(/ 18\d\d (\d{2}):(\d{2}):/);
+    if(time) return Number(time[1]) + 'h' + time[2];
+    var d = new Date(v.replace(/ \(.*\)$/, ''));
+    if(isNaN(d)) return v;
+    var s = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   function loadEvent(){
     if(!configured()) return;
     fetch(window.APPS_SCRIPT_URL + '?action=event')
@@ -853,7 +893,7 @@
       .then(function(data){
         var event = (data && data.ok && data.event) || {};
         Object.keys(eventInputs).forEach(function(field){
-          eventInputs[field].value = field in event ? event[field] : EVENT_DEFAULTS[field];
+          eventInputs[field].value = field in event ? readableEventValue(event[field]) : EVENT_DEFAULTS[field];
         });
       })
       .catch(function(){
@@ -924,26 +964,39 @@
     return guestsCache.filter(function(g){ return g.wantsSanta; });
   }
 
+  // Alphabetical by first name (accents ignored), filtered by the search box.
   function renderSantaTable(){
     santaTbody.innerHTML = '';
-    guestsCache.forEach(function(g){
+    var q = santaSearch.value.trim().toLowerCase();
+    var visible = guestsCache.filter(function(g){
+      return !q || String(g.name || '').toLowerCase().indexOf(q) !== -1
+                || String(g.email || '').toLowerCase().indexOf(q) !== -1;
+    }).sort(function(a, b){
+      return String(a.name || '').localeCompare(String(b.name || ''), 'fr', { sensitivity: 'base' });
+    });
+    visible.forEach(function(g){
       var tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + escapeHtml(g.name) + '</td>' +
-        '<td class="mono">' + escapeHtml(g.email) + '</td>' +
-        '<td><span class="status ' + (g.wantsSanta ? 'yes' : 'no') + '">' + (g.wantsSanta ? 'Oui' : 'Non') + '</span></td>' +
-        '<td>' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '-') + '</td>' +
-        '<td>' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '-') + '</td>' +
-        '<td>' + (g.wantsSanta ? '<button class="btn-delete santa-remove" data-uid="' + escapeHtml(g.uid) + '">Ne participe plus</button>' : '') + '</td>';
+        '<td data-label="Nom">' + escapeHtml(g.name) + '</td>' +
+        '<td class="mono" data-label="Email">' + escapeHtml(g.email) + '</td>' +
+        '<td data-label="Participe"><span class="status ' + (g.wantsSanta ? 'yes' : 'no') + '">' + (g.wantsSanta ? 'Oui' : 'Non') + '</span></td>' +
+        '<td data-label="Offre à">' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '-') + '</td>' +
+        '<td data-label="Reçoit de">' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '-') + '</td>' +
+        '<td class="row-actions">' + (g.wantsSanta
+          ? '<button class="btn-delete santa-remove" data-uid="' + escapeHtml(g.uid) + '">Ne participe plus</button>'
+          : '<button class="btn-delete santa-add" data-uid="' + escapeHtml(g.uid) + '">Faire participer</button>') + '</td>';
       santaTbody.appendChild(tr);
     });
-    santaEmptyMsg.style.display = guestsCache.length ? 'none' : 'block';
+    santaEmptyMsg.textContent = guestsCache.length ? 'Aucun résultat.' : "Aucun invité inscrit pour l'instant.";
+    santaEmptyMsg.style.display = visible.length ? 'none' : 'block';
 
     var n = participantsOnly().length;
     santaParticipantsNote.textContent = guestsCache.length
       ? n + ' / ' + guestsCache.length + ' invité(e)s inscrit(e)s participent au Secret Santa.'
       : "Aucun invité inscrit pour l'instant.";
   }
+
+  santaSearch.addEventListener('input', renderSantaTable);
 
   santaRefreshBtn.addEventListener('click', function(){
     santaRefreshBtn.textContent = '...';
@@ -978,6 +1031,27 @@
     var del = firebase.firestore.FieldValue.delete();
     return { santaForUid: del, givingThreadId: del, receivingThreadId: del };
   }
+
+  // ---- Set someone's Secret Santa participation to "yes" (organizers) ----
+  // Only changes their answer: the draw itself is not touched.
+  santaTbody.addEventListener('click', function(e){
+    var btn = e.target.closest('.santa-add');
+    if(!btn) return;
+    var person = guestsCache.filter(function(g){ return g.uid === btn.getAttribute('data-uid'); })[0];
+    if(!person) return;
+    if(!window.confirm(person.name + ' participe au Secret Santa ?')) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    db.collection('guests').doc(person.uid).update({ wantsSanta: true }).then(function(){
+      setNote(santaDrawNote, person.name + ' participe maintenant au Secret Santa.', 'ok');
+      return loadGuests();
+    }).catch(function(err){
+      setNote(santaDrawNote, 'Erreur : ' + (err.message || err), 'bad');
+      btn.disabled = false;
+      btn.textContent = 'Faire participer';
+    });
+  });
 
   // ---- Remove one person from the Secret Santa ----
   // If the draw is already done, the chain is repaired instead of redrawn:

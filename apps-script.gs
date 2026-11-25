@@ -209,9 +209,24 @@ function getEvent_() {
   var event = {};
   for (var i = 1; i < values.length; i++) {
     var field = String(values[i][0]);
-    if (EVENT_FIELDS.indexOf(field) !== -1) event[field] = String(values[i][1] || '');
+    if (EVENT_FIELDS.indexOf(field) !== -1) event[field] = formatEventValue_(values[i][1]);
   }
   return event;
+}
+
+// Google Sheets turns typed dates/times into Date objects; give them back
+// as readable French text ("Samedi 19 décembre 2026", "18h30").
+function formatEventValue_(value) {
+  if (!(value instanceof Date)) return String(value || '');
+  var tz = Session.getScriptTimeZone();
+  if (value.getFullYear() < 1901) {
+    return Utilities.formatDate(value, tz, "H'h'mm");
+  }
+  var days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  var months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
+                'septembre', 'octobre', 'novembre', 'décembre'];
+  var d = new Date(Utilities.formatDate(value, tz, "yyyy-MM-dd'T'12:00:00"));
+  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
 function setEvent_(event) {
@@ -225,10 +240,11 @@ function setEvent_(event) {
     if (!(field in event)) return;
     var value = String(event[field] || '').trim().slice(0, 150);
     if (rowByField[field]) {
-      sheet.getRange(rowByField[field], 2).setValue(value);
+      sheet.getRange(rowByField[field], 2).setNumberFormat('@').setValue(value);
     } else {
-      sheet.appendRow([field, value]);
+      sheet.appendRow([field, '']);
       rowByField[field] = sheet.getLastRow();
+      sheet.getRange(rowByField[field], 2).setNumberFormat('@').setValue(value);
     }
   });
   return { ok: true, event: getEvent_() };

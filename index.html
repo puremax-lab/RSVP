@@ -36,7 +36,7 @@
     color:var(--ink);
     font-family:'Cormorant Garamond', Georgia, serif;
     -webkit-font-smoothing:antialiased;
-    overflow-x:hidden;
+    overflow-x:hidden; overflow-x:clip;
   }
   h1,h2,h3{font-family:'Cormorant Garamond', Georgia, serif; margin:0; text-wrap:balance;}
   .label{font-family:'Marcellus', Georgia, serif; text-transform:uppercase; letter-spacing:.26em;}
@@ -155,6 +155,11 @@
   }
   footer .admin-link:hover{ opacity:1; color:var(--gold-light); }
 
+  html{ overflow-x:hidden; overflow-x:clip; }
+  @media (max-width:560px){
+    .hero::before, .section::before, .details::before, .closing::before{ inset:-8% -6%; }
+  }
+
   /* ---------- MODAL ---------- */
   .modal-overlay{
     position:fixed; inset:0; z-index:50; display:none;
@@ -163,7 +168,7 @@
   }
   .modal-overlay.open{display:flex;}
   .modal-card{
-    position:relative; width:100%; max-width:420px; max-height:88vh; overflow-y:auto; overflow-x:hidden;
+    position:relative; width:100%; max-width:420px; min-width:0; max-height:88vh; overflow-y:auto; overflow-x:hidden;
     background:linear-gradient(180deg, #1c0a09, #100504);
     border:1px solid var(--line); border-radius:6px;
     padding:44px 34px 34px; text-align:center;
@@ -211,6 +216,13 @@
   .thanks h3{ font-size:1.7rem; color:var(--gold-light); font-weight:500;}
   .thanks p{margin-top:12px; color:var(--ink-dim); font-size:.92rem;}
   .thanks .cta-btn{margin-top:20px;}
+
+  @media (max-width:420px){
+    .modal-overlay{ padding:12px; }
+    .modal-card{ padding:38px 20px 26px; max-height:92vh; }
+    .modal-card .cta-btn{ padding:14px 16px; letter-spacing:.16em; }
+    .attend-choice{ gap:22px; }
+  }
 
   /* ---------- INTRO ---------- */
   body.intro-active, body.modal-open{overflow:hidden;}
@@ -520,6 +532,21 @@
 
   // ---- Event details edited from the admin (date, time, place, theme) ----
   // The page shows its built-in values first, then the saved ones if any.
+  // A date saved by Google Sheets can come back as a raw JavaScript date
+  // ("Sat Dec 19 2026 00:00:00 GMT+0100 ..."): show it in French instead.
+  function readableEventValue(value){
+    var v = String(value || '');
+    if(!/^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{4} \d{2}:\d{2}:\d{2} GMT/.test(v)) return v;
+    // A time alone is stored on 30/12/1899: read the hours from the text
+    // (the historical time zone of that year would shift the minutes).
+    var time = v.match(/ 18\d\d (\d{2}):(\d{2}):/);
+    if(time) return Number(time[1]) + 'h' + time[2];
+    var d = new Date(v.replace(/ \(.*\)$/, ''));
+    if(isNaN(d)) return v;
+    var s = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   (function loadEventDetails(){
     if(!window.APPS_SCRIPT_URL || window.APPS_SCRIPT_URL.indexOf('COLLEZ_ICI') !== -1) return;
     function esc(v){ return String(v).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -528,6 +555,8 @@
       .then(function(data){
         var ev = data && data.ok && data.event;
         if(!ev) return;
+        ev.date = readableEventValue(ev.date);
+        ev.heure = readableEventValue(ev.heure);
         if(ev.date){
           document.getElementById('heroDate').textContent = ev.date;
           document.getElementById('eventWhen').innerHTML = esc(ev.date) + (ev.heure ? '<br>à ' + esc(ev.heure) : '');

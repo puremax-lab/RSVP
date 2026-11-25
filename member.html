@@ -81,23 +81,26 @@
   .top-bar .who{ font-style:italic; color:var(--gold-light); font-size:1.05rem; overflow-wrap:anywhere; word-break:break-word; min-width:0; }
 
   .section{ margin-top:40px; padding-top:30px; border-top:1px solid var(--line); }
-  .section-title{ font-size:.64rem; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .section-title{ font-size:.7rem; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
   .section p.lead{ font-size:1.1rem; color:var(--ink); }
   .section p.lead strong{ color:var(--gold-light); font-weight:500; }
   .empty-note{ color:var(--ink-dim); font-style:italic; font-size:.9rem; }
 
   /* ---- Sections repliables (chevron) + badge "non lu" ---- */
   .collapsible-toggle{
-    width:100%; background:none; border:none; padding:0; margin:0;
+    width:100%; min-height:44px; background:none; border:none; padding:8px 0; margin:0;
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    text-align:left; -webkit-tap-highlight-color:transparent;
+    text-align:left; -webkit-tap-highlight-color:transparent; cursor:pointer;
   }
   .collapsible-toggle .toggle-label{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; overflow-wrap:anywhere; }
   .collapsible-toggle .chevron{
-    flex-shrink:0; color:var(--gold-dim); font-size:.95em; transition:transform .2s ease; display:inline-block;
+    flex-shrink:0; color:var(--gold); font-size:1.15em; transition:transform .2s ease; display:inline-block;
   }
   .collapsible-toggle[aria-expanded="true"] .chevron{ transform:rotate(180deg); }
-  .collapsible-body{ margin-top:16px; }
+  .collapsible-body{ margin-top:10px; }
+  /* Secret Santa sub-blocks: a light frame so each part reads as one unit */
+  .santa-block{ border:1px solid var(--line); border-radius:6px; padding:4px 16px 14px; margin-bottom:14px; }
+  .santa-block .collapsible-body{ margin-top:6px; }
   .unread-badge{
     display:inline-block; flex-shrink:0; background:var(--bad); color:#2a0505;
     font-family:'Marcellus', serif; font-size:.54rem; letter-spacing:.06em; text-transform:uppercase;
@@ -105,17 +108,17 @@
   }
   .giving-toggle, .receiving-toggle{ margin-bottom:0; }
 
-  .announce-item{ margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+  .announce-item{ margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid var(--line); }
   .announce-item:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
-  .announce-item .announce-head{ font-family:'Marcellus',serif; font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+  .announce-item .announce-head{ font-family:'Marcellus',serif; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
   .announce-toggle{
-    width:100%; background:none; border:none; padding:4px 0; margin:0; cursor:pointer;
+    width:100%; min-height:44px; background:none; border:none; padding:8px 0; margin:0; cursor:pointer;
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     text-align:left; -webkit-tap-highlight-color:transparent;
   }
-  .announce-toggle .chevron{ flex-shrink:0; color:var(--gold-dim); transition:transform .2s ease; }
+  .announce-toggle .chevron{ flex-shrink:0; color:var(--gold); font-size:1.15em; transition:transform .2s ease; }
   .announce-toggle[aria-expanded="true"] .chevron{ transform:rotate(180deg); }
-  .announce-content{ margin-top:10px; }
+  .announce-content{ margin:4px 0 14px; }
   .pin-badge{ color:var(--gold-light); }
   .announce-item .announce-body{ white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6; }
   .announce-gallery{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
@@ -209,7 +212,7 @@
     .card > p.sub{ font-size:.86rem; }
     .btn{ font-size:.66rem; letter-spacing:.13em; padding:12px 16px; }
     .btn.small{ font-size:.64rem; padding:10px 14px; }
-    .section-title{ font-size:.6rem; }
+    .section-title{ font-size:.66rem; }
     .unread-badge{ font-size:.5rem; padding:2px 7px; }
     .modal-overlay{ padding:4vh 10px; }
     .modal-card{ padding:26px 18px 24px; }
@@ -295,8 +298,8 @@
 
       <div id="santaActiveCard" hidden>
         <!-- My wishlist: editable before and after the draw -->
-        <div style="margin-bottom:30px;">
-          <button type="button" class="section-title label collapsible-toggle" id="wishlistToggle" aria-expanded="false" style="font-size:.6rem;">
+        <div class="santa-block">
+          <button type="button" class="section-title label collapsible-toggle" id="wishlistToggle" aria-expanded="false">
             <span class="toggle-label">Ma liste de souhaits</span>
             <span class="chevron">▾</span>
           </button>
@@ -313,8 +316,8 @@
           </div>
         </div>
 
-        <div id="givingThread2">
-          <button type="button" class="section-title label collapsible-toggle giving-toggle" id="givingToggle" aria-expanded="false" style="font-size:.6rem;">
+        <div id="givingThread2" class="santa-block">
+          <button type="button" class="section-title label collapsible-toggle giving-toggle" id="givingToggle" aria-expanded="false">
             <span class="toggle-label">Tu offres à <span class="unread-badge" id="givingBadge" hidden>Nouveau</span></span>
             <span class="chevron">▾</span>
           </button>
@@ -334,8 +337,8 @@
           </div>
         </div>
 
-        <div style="margin-top:30px;">
-          <button type="button" class="section-title label collapsible-toggle receiving-toggle" id="receivingToggle" aria-expanded="false" style="font-size:.6rem;">
+        <div class="santa-block">
+          <button type="button" class="section-title label collapsible-toggle receiving-toggle" id="receivingToggle" aria-expanded="false">
             <span class="toggle-label">Message de ton Secret Santa <span class="unread-badge" id="receivingBadge" hidden>Nouveau</span></span>
             <span class="chevron">▾</span>
           </button>
@@ -1078,6 +1081,21 @@
   }
 
   // ---- Event details edited from the admin, shown in the welcome pop-up ----
+  // A date saved by Google Sheets can come back as a raw JavaScript date
+  // ("Sat Dec 19 2026 00:00:00 GMT+0100 ..."): show it in French instead.
+  function readableEventValue(value){
+    var v = String(value || '');
+    if(!/^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{4} \d{2}:\d{2}:\d{2} GMT/.test(v)) return v;
+    // A time alone is stored on 30/12/1899: read the hours from the text
+    // (the historical time zone of that year would shift the minutes).
+    var time = v.match(/ 18\d\d (\d{2}):(\d{2}):/);
+    if(time) return Number(time[1]) + 'h' + time[2];
+    var d = new Date(v.replace(/ \(.*\)$/, ''));
+    if(isNaN(d)) return v;
+    var s = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   (function loadEventDetails(){
     if(!window.APPS_SCRIPT_URL) return;
     fetch(window.APPS_SCRIPT_URL + '?action=event')
@@ -1085,6 +1103,8 @@
       .then(function(data){
         var ev = data && data.ok && data.event;
         if(!ev) return;
+        ev.date = readableEventValue(ev.date);
+        ev.heure = readableEventValue(ev.heure);
         if(ev.date) document.getElementById('welcomeDate').textContent = '📅 ' + ev.date;
         if(ev.heure) document.getElementById('welcomeTime').textContent = '🕡 ' + ev.heure;
         if(ev.lieu) document.getElementById('welcomePlace').textContent = '📍 ' + ev.lieu;

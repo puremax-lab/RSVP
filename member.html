@@ -91,6 +91,12 @@
   .cd-done{ font-style:italic; font-size:1.35rem; color:var(--gold-light); }
   .member-countdown{ border:1px solid var(--line); border-radius:6px; padding:20px 16px 16px; margin-bottom:30px; background:rgba(184,147,79,.05); }
   .member-countdown .cd-num{ font-size:2.2rem; }
+  .guide-link{
+    display:inline-flex; align-items:center; gap:7px; margin-top:4px; padding:6px 4px;
+    color:var(--ink-dim); font-style:italic; font-size:.9rem; text-decoration:none;
+    border-bottom:1px solid transparent; transition:color .2s ease, border-color .2s ease;
+  }
+  .guide-link:hover{ color:var(--gold-light); border-color:var(--gold-dim); }
 
   .section{ margin-top:40px; padding-top:30px; border-top:1px solid var(--line); }
   .section-title{ font-size:.7rem; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
@@ -302,6 +308,7 @@
       </div>
       <p class="cd-done" hidden>C'est le grand soir !</p>
       <p class="cd-when label">Samedi 19 décembre 2026 · 18h00</p>
+      <a class="guide-link" href="files/guide-invite.pdf" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>Guide de l'invité</a>
     </div>
 
     <div id="updatesSection">

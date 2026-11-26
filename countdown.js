@@ -1,6 +1,6 @@
 // Countdown to the party, shared by the invitation and the guest space.
 // It reads the event date/time as typed in the admin ("Samedi 19 décembre
-// 2026", "18h00") and updates days / hours / minutes every 20 seconds.
+// 2026", "18h00") and updates days / hours / minutes / seconds every second.
 (function(){
   var MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   var DEFAULT = { date: 'Samedi 19 décembre 2026', heure: '18h00' };
@@ -44,10 +44,12 @@
         units.hidden = true; done.hidden = false;
       } else {
         units.hidden = false; done.hidden = true;
-        var mins = Math.floor(left / 60000);
-        root.querySelector('[data-cd="d"]').textContent = Math.floor(mins / 1440);
-        root.querySelector('[data-cd="h"]').textContent = String(Math.floor(mins / 60) % 24).padStart(2, '0');
-        root.querySelector('[data-cd="m"]').textContent = String(mins % 60).padStart(2, '0');
+        var secs = Math.floor(left / 1000);
+        root.querySelector('[data-cd="d"]').textContent = Math.floor(secs / 86400);
+        root.querySelector('[data-cd="h"]').textContent = String(Math.floor(secs / 3600) % 24).padStart(2, '0');
+        root.querySelector('[data-cd="m"]').textContent = String(Math.floor(secs / 60) % 60).padStart(2, '0');
+        var sec = root.querySelector('[data-cd="s"]');
+        if(sec) sec.textContent = String(secs % 60).padStart(2, '0');
       }
       var when = root.querySelector('.cd-when');
       if(when) when.textContent = state.date + (state.heure ? ' · ' + state.heure : '');
@@ -59,7 +61,7 @@
     start: function(){
       state.roots = [].slice.call(document.querySelectorAll('[data-countdown]'));
       render();
-      setInterval(render, 20000);
+      setInterval(render, 1000);
     },
     // Called once the saved event details are loaded.
     setEvent: function(dateText, timeText){

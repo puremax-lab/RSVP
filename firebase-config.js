@@ -14,3 +14,6 @@ window.FIREBASE_CONFIG = {
 // Les adresses admin (Kisha, Max & Esther) — doivent correspondre EXACTEMENT
 // à celles codées dans firestore.rules.
 window.ADMIN_EMAILS = ['josepha.tsm@outlook.be', 'youtamaxime@gmail.com', 'adjo93@hotmail.fr'];
+
+// Only these organizers see who gives to whom in the Secret Santa (admin page).
+window.SANTA_PAIRS_VIEWERS = ['youtamaxime@gmail.com'];

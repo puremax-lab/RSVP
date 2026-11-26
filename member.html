@@ -80,6 +80,18 @@
   .top-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:38px; flex-wrap:wrap; }
   .top-bar .who{ font-style:italic; color:var(--gold-light); font-size:1.05rem; overflow-wrap:anywhere; word-break:break-word; min-width:0; }
 
+  /* ---- Countdown to the party ---- */
+  .countdown{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .cd-units{ display:flex; align-items:center; gap:18px; }
+  .cd-unit{ display:flex; flex-direction:column; align-items:center; min-width:62px; }
+  .cd-num{ font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-size:2.6rem; line-height:1; color:var(--gold-light); font-variant-numeric:tabular-nums; }
+  .cd-lbl{ margin-top:7px; font-family:'Marcellus', Georgia, serif; text-transform:uppercase; letter-spacing:.2em; font-size:.56rem; color:var(--gold); }
+  .cd-sep{ width:1px; height:34px; background:var(--line); }
+  .cd-when{ font-size:.74rem; color:var(--ink); }
+  .cd-done{ font-style:italic; font-size:1.35rem; color:var(--gold-light); }
+  .member-countdown{ border:1px solid var(--line); border-radius:6px; padding:20px 16px 16px; margin-bottom:30px; background:rgba(184,147,79,.05); }
+  .member-countdown .cd-num{ font-size:2.2rem; }
+
   .section{ margin-top:40px; padding-top:30px; border-top:1px solid var(--line); }
   .section-title{ font-size:.7rem; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
   .section p.lead{ font-size:1.1rem; color:var(--ink); }
@@ -120,6 +132,7 @@
   .announce-toggle[aria-expanded="true"] .chevron{ transform:rotate(180deg); }
   .announce-content{ margin:4px 0 14px; }
   .pin-badge{ color:var(--gold-light); }
+  .announce-attach{ display:inline-flex; align-items:center; gap:8px; width:auto; margin-top:14px; text-decoration:none; }
   .announce-item .announce-body{ white-space:pre-wrap; color:var(--ink); font-size:.98rem; line-height:1.6; }
   .announce-gallery{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
   .announce-gallery a{ position:relative; display:block; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:rgba(0,0,0,.2); }
@@ -238,6 +251,7 @@
   window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeO_EU4RbK-kEtBkjc9AQ0dYSwPbgiTCIbSLQCwyK_r5Cp5Rrt5LGKmTlevdA7_Fon/exec";
 </script>
 <script src="firebase-config.js"></script>
+<script src="countdown.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -276,6 +290,18 @@
     <div class="top-bar">
       <p class="who" id="whoLabel"></p>
       <button class="btn ghost small" id="signOutBtn">Déconnexion</button>
+    </div>
+
+    <div class="countdown member-countdown" data-countdown>
+      <div class="cd-units" role="timer" aria-label="Temps restant avant la soirée">
+        <div class="cd-unit"><span class="cd-num" data-cd="d">--</span><span class="cd-lbl">jours</span></div>
+        <span class="cd-sep" aria-hidden="true"></span>
+        <div class="cd-unit"><span class="cd-num" data-cd="h">--</span><span class="cd-lbl">heures</span></div>
+        <span class="cd-sep" aria-hidden="true"></span>
+        <div class="cd-unit"><span class="cd-num" data-cd="m">--</span><span class="cd-lbl">min</span></div>
+      </div>
+      <p class="cd-done" hidden>C'est le grand soir !</p>
+      <p class="cd-when label">Samedi 19 décembre 2026 · 18h00</p>
     </div>
 
     <div id="updatesSection">
@@ -976,6 +1002,10 @@
   // identique sur tous les appareils et prendre la couleur dorée du texte.
   var EXPAND_ICON = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+  // Paper-clip icon for announcement attachments (drawn, same on every phone).
+  var ATTACH_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>';
+
   function renderGallery(images){
     return '<div class="announce-gallery">' + images.map(function(img){
       return '<a href="' + img.src + '.webp" target="_blank" rel="noopener">' +
@@ -1028,6 +1058,10 @@
         '<p class="announce-body">' + escapeHtml(a.body || '') + '</p>' +
         (a.images ? renderGallery(a.images) : '') +
         (a.after ? '<p class="announce-body">' + escapeHtml(a.after) + '</p>' : '') +
+        (a.attachmentUrl && /^https:\/\//.test(a.attachmentUrl)
+          ? '<a class="btn small announce-attach" href="' + escapeHtml(a.attachmentUrl) + '" target="_blank" rel="noopener">' +
+              ATTACH_ICON + escapeHtml(a.attachmentName || 'Pièce jointe') + '</a>'
+          : '') +
       '</div>' +
     '</div>';
   }
@@ -1070,7 +1104,8 @@
       var list = fixedAnnouncements();
       qs.forEach(function(doc){
         var d = doc.data();
-        list.push({ id: 'u-' + doc.id, title: d.title, body: d.body, millis: toMillis(d.createdAt) });
+        list.push({ id: 'u-' + doc.id, title: d.title, body: d.body, millis: toMillis(d.createdAt),
+          attachmentUrl: d.attachmentUrl, attachmentName: d.attachmentName });
       });
       currentAnnouncements = list;
       updatesList.innerHTML = renderAnnouncements(list);
@@ -1079,6 +1114,8 @@
       updatesList.innerHTML = renderAnnouncements(fixedAnnouncements()) + '<p class="empty-note">Impossible de charger les annonces.</p>';
     });
   }
+
+  window.PartyCountdown.start();
 
   // ---- Event details edited from the admin, shown in the welcome pop-up ----
   // A date saved by Google Sheets can come back as a raw JavaScript date
@@ -1105,6 +1142,7 @@
         if(!ev) return;
         ev.date = readableEventValue(ev.date);
         ev.heure = readableEventValue(ev.heure);
+        window.PartyCountdown.setEvent(ev.date, ev.heure);
         if(ev.date) document.getElementById('welcomeDate').textContent = '📅 ' + ev.date;
         if(ev.heure) document.getElementById('welcomeTime').textContent = '🕡 ' + ev.heure;
         if(ev.lieu) document.getElementById('welcomePlace').textContent = '📍 ' + ev.lieu;

@@ -117,6 +117,7 @@
   .status{ font-size:.85rem; }
   .status.yes{ color:var(--ok); }
   .status.no{ color:var(--bad); }
+  .pair-hidden{ color:var(--ink-dim); font-style:italic; }
 
   /* ---- Payment of the 40 € (manual tracking: to pay / partial / paid) ---- */
   .pay-cell{ display:inline-flex; align-items:center; gap:8px; }
@@ -190,6 +191,10 @@
     padding:12px; color:var(--parchment); font-size:.98rem; font-family:inherit; resize:vertical;
   }
   .update-title:focus, .update-body:focus{ outline:none; border-color:var(--gold); }
+  .attach-label{ margin-top:18px; }
+  .attach-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .attach-row .update-title{ flex:1; min-width:200px; margin-bottom:12px; }
+  .attach-row .btn{ margin:0 0 12px; }
   .check-row{ display:flex; align-items:center; gap:10px; margin-top:16px; cursor:pointer; }
   .check-row input{ width:auto; accent-color:var(--gold); }
   .check-row span{ font-size:.88rem; color:var(--ink-dim); }
@@ -424,6 +429,13 @@
       <label class="label field-label" for="updateBodyInput">Message</label>
       <textarea class="update-body" id="updateBodyInput" rows="7" placeholder="Écris l'annonce ici..."></textarea>
 
+      <label class="label field-label attach-label" for="updateAttachUrl">Pièce jointe (facultatif)</label>
+      <div class="attach-row">
+        <input type="url" class="update-title" id="updateAttachUrl" placeholder="Lien du fichier (https://...)">
+        <button type="button" class="btn ghost small" id="attachGuideBtn">Joindre le guide de l'invité</button>
+      </div>
+      <input type="text" class="update-title" id="updateAttachName" maxlength="100" placeholder="Nom affiché, ex. Guide de l'invité (PDF)">
+
       <label class="check-row">
         <input type="checkbox" id="updateEmailToggle" checked>
         <span>Envoyer aussi par e-mail à tous les invités ayant un compte</span>
@@ -479,6 +491,14 @@
   var updateTitleInput = document.getElementById('updateTitleInput');
   var updateBodyInput = document.getElementById('updateBodyInput');
   var updateEmailToggle = document.getElementById('updateEmailToggle');
+  var updateAttachUrl = document.getElementById('updateAttachUrl');
+  var updateAttachName = document.getElementById('updateAttachName');
+
+  // One click to attach the guest guide hosted with the site.
+  document.getElementById('attachGuideBtn').addEventListener('click', function(){
+    updateAttachUrl.value = new URL('files/guide-invite.pdf', window.location.href).href;
+    if(!updateAttachName.value.trim()) updateAttachName.value = "Guide de l'invité (PDF)";
+  });
   var updatePublishBtn = document.getElementById('updatePublishBtn');
   var updateNote = document.getElementById('updateNote');
 
@@ -955,6 +975,18 @@
     return g ? g.name : '-';
   }
 
+  // Who gives to whom is only shown to SANTA_PAIRS_VIEWERS; the other
+  // organizers just see that a pair exists.
+  var currentAdminEmail = '';
+  function canSeePairs(){
+    return (window.SANTA_PAIRS_VIEWERS || []).map(function(e){ return e.toLowerCase(); })
+      .indexOf(currentAdminEmail.toLowerCase()) !== -1;
+  }
+  function pairLabel(hasPair, name){
+    if(!hasPair) return '-';
+    return canSeePairs() ? escapeHtml(name) : '<span class="pair-hidden">Secret</span>';
+  }
+
   function giverNameFor(uid){
     var g = guestsCache.filter(function(x){ return x.santaForUid === uid; })[0];
     return g ? g.name : '-';
@@ -980,8 +1012,8 @@
         '<td data-label="Nom">' + escapeHtml(g.name) + '</td>' +
         '<td class="mono" data-label="Email">' + escapeHtml(g.email) + '</td>' +
         '<td data-label="Participe"><span class="status ' + (g.wantsSanta ? 'yes' : 'no') + '">' + (g.wantsSanta ? 'Oui' : 'Non') + '</span></td>' +
-        '<td data-label="Offre à">' + (g.santaForUid ? escapeHtml(nameByUid(g.santaForUid)) : '-') + '</td>' +
-        '<td data-label="Reçoit de">' + (g.receivingThreadId ? escapeHtml(giverNameFor(g.uid)) : '-') + '</td>' +
+        '<td data-label="Offre à">' + pairLabel(!!g.santaForUid, g.santaForUid ? nameByUid(g.santaForUid) : '') + '</td>' +
+        '<td data-label="Reçoit de">' + pairLabel(!!g.receivingThreadId, g.receivingThreadId ? giverNameFor(g.uid) : '') + '</td>' +
         '<td class="row-actions">' + (g.wantsSanta
           ? '<button class="btn-delete santa-remove" data-uid="' + escapeHtml(g.uid) + '">Ne participe plus</button>'
           : '<button class="btn-delete santa-add" data-uid="' + escapeHtml(g.uid) + '">Faire participer</button>') + '</td>';
@@ -1072,7 +1104,9 @@
     var message = person.name + ' ne participe plus au Secret Santa ?' +
       '\n\nSa confirmation de présence à la soirée et son espace invité ne changent pas.';
     if(relink){
-      message += '\n\n' + giver.name + ' offrira désormais à ' + recipient.name + ' (nouvelle conversation pour eux deux). Les autres binômes ne changent pas.';
+      message += canSeePairs()
+        ? '\n\n' + giver.name + ' offrira désormais à ' + recipient.name + ' (nouvelle conversation pour eux deux). Les autres binômes ne changent pas.'
+        : "\n\nLa personne qui lui offrait un cadeau offrira désormais au destinataire de " + person.name + '. Les autres binômes ne changent pas.';
     } else if(drawn){
       message += "\n\nSon binôme sera aussi retiré du tirage : il faudra relancer le tirage pour lui en attribuer un.";
     }
@@ -1219,6 +1253,13 @@
       return;
     }
 
+    var attachUrl = updateAttachUrl.value.trim();
+    var attachName = updateAttachName.value.trim() || 'Pièce jointe';
+    if(attachUrl && !/^https:\/\//.test(attachUrl)){
+      setNote(updateNote, 'Le lien de la pièce jointe doit commencer par https://', 'bad');
+      return;
+    }
+
     var wantsEmail = updateEmailToggle.checked;
     var recipients = [];
     if(wantsEmail){
@@ -1238,15 +1279,20 @@
     updatePublishBtn.textContent = 'Publication...';
     setNote(updateNote, '', '');
 
-    db.collection('updates').add({
-      title: title,
-      body: body,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function(){
+    var update = { title: title, body: body, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+    if(attachUrl){ update.attachmentUrl = attachUrl; update.attachmentName = attachName; }
+    // The e-mail carries the attachment as a link under the message.
+    var emailBody = attachUrl ? body + '\n\n' + attachName + ' : ' + attachUrl : body;
+
+    function clearForm(){
+      updateTitleInput.value = ''; updateBodyInput.value = '';
+      updateAttachUrl.value = ''; updateAttachName.value = '';
+    }
+
+    db.collection('updates').add(update).then(function(){
       if(!wantsEmail || !recipients.length){
         setNote(updateNote, 'Annonce publiée sur le site.', 'ok');
-        updateTitleInput.value = '';
-        updateBodyInput.value = '';
+        clearForm();
         return;
       }
 
@@ -1258,13 +1304,12 @@
 
       return fetch(window.APPS_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'sendUpdate', key: key, subject: title, body: body, recipients: recipients })
+        body: JSON.stringify({ action: 'sendUpdate', key: key, subject: title, body: emailBody, recipients: recipients })
       }).then(function(r){ return r.json(); }).then(function(data){
         if(data && data.ok){
           var extra = (data.failed && data.failed.length) ? (' (' + data.failed.length + ' échec(s))') : '';
           setNote(updateNote, 'Annonce publiée sur le site et envoyée par e-mail à ' + data.sent + ' invité(e)s' + extra + '.', 'ok');
-          updateTitleInput.value = '';
-          updateBodyInput.value = '';
+          clearForm();
         } else {
           setNote(updateNote, "Annonce publiée sur le site, mais l'envoi e-mail a échoué (" + ((data && data.error) || 'erreur inconnue') + ').', 'bad');
         }
@@ -1292,6 +1337,7 @@
       return;
     }
     whoText.textContent = 'Connecté comme ' + email;
+    currentAdminEmail = email;
     showGate(null);
     loadRsvp();
     loadEvent();

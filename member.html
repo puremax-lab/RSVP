@@ -676,13 +676,37 @@
       sendLinkBtn.textContent = 'Recevoir mon lien de connexion';
     });
 
+    // The link is mailed by the Apps Script (same Gmail as the announcements,
+    // better delivered). If that fails, Firebase sends it as before.
     function sendLink(){
-    return auth.sendSignInLinkToEmail(email, actionCodeSettings).then(function(){
+      return sendLinkViaScript().then(function(data){
+        if(data && data.ok){ linkSent(); return; }
+        if(data && data.error === 'not_registered'){ showNotRegistered(email); return; }
+        if(data && data.error === 'too_soon'){
+          setNote(loginNote, 'Un lien vient de partir. Vérifie ta boîte mail (et tes spams) avant d\'en redemander un.', 'ok');
+          return;
+        }
+        return sendLinkViaFirebase();
+      });
+    }
+
+    function sendLinkViaScript(){
+      if(!window.APPS_SCRIPT_URL) return Promise.resolve(null);
+      return fetch(window.APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'sendLoginLink', email: email })
+      }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+    }
+
+    function sendLinkViaFirebase(){
+      return auth.sendSignInLinkToEmail(email, actionCodeSettings).then(linkSent).catch(function(err){
+        setNote(loginNote, 'Erreur : ' + (err.message || err), 'bad');
+      });
+    }
+
+    function linkSent(){
       window.localStorage.setItem(EMAIL_KEY, email);
       setNote(loginNote, 'Lien envoyé ! Vérifie ta boîte mail (et tes spams) et clique dessus pour te connecter.', 'ok');
-    }).catch(function(err){
-      setNote(loginNote, 'Erreur : ' + (err.message || err), 'bad');
-    });
     }
   });
 

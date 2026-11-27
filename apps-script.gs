@@ -43,6 +43,7 @@ var PAIR_SHEET_NAME = 'PairEmails'; // table cachée : jamais exposée à un inv
 // version of the code no longer erases it.
 var ADMIN_KEY = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY') || 'CHANGE_ME';
 var MEMBER_URL = 'https://puremax-lab.github.io/RSVP/member.html';
+var FIREBASE_PROJECT_ID = 'christmas-party-ii';
 
 function doPost(e) {
   try {
@@ -68,6 +69,13 @@ function doPost(e) {
     if (data.action === 'setEvent') {
       if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
       return jsonOut_(setEvent_(data.event));
+    }
+
+    // Sign-in link for the guest space, sent from this Gmail account instead
+    // of Firebase's shared address (often filtered by Yahoo or Hotmail).
+    // Public, but only for registered e-mails and at most once a minute.
+    if (data.action === 'sendLoginLink') {
+      return jsonOut_(sendLoginLink_(data.email));
     }
 
     // Envoi d'un e-mail groupé à une liste d'invités (protégé par ADMIN_KEY).
@@ -305,6 +313,82 @@ function sendUpdate_(subject, body, recipients) {
   });
 
   return { ok: true, sent: sent.length, failed: failed };
+}
+
+// Asks Firebase to build the sign-in link (without sending it), then mails it.
+// Needs the cloud-platform scope in appsscript.json and this Google account
+// to be an owner of the Firebase project.
+function sendLoginLink_(email) {
+  email = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'bad_email' };
+  if (!isEmailRegistered_(email)) return { ok: false, error: 'not_registered' };
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'link_' + email;
+  if (cache.get(cacheKey)) return { ok: false, error: 'too_soon' };
+  if (MailApp.getRemainingDailyQuota() <= 0) return { ok: false, error: 'quota_exceeded' };
+
+  var res = UrlFetchApp.fetch(
+    'https://identitytoolkit.googleapis.com/v1/projects/' + FIREBASE_PROJECT_ID + '/accounts:sendOobCode', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+        'X-Goog-User-Project': FIREBASE_PROJECT_ID
+      },
+      payload: JSON.stringify({
+        requestType: 'EMAIL_SIGNIN',
+        email: email,
+        continueUrl: MEMBER_URL,
+        canHandleCodeInApp: true,
+        returnOobLink: true
+      }),
+      muteHttpExceptions: true
+    });
+  var out = {};
+  try { out = JSON.parse(res.getContentText()); } catch (err) {}
+  if (res.getResponseCode() !== 200 || !out.oobLink) {
+    Logger.log('sendLoginLink_ ' + res.getResponseCode() + ' ' + res.getContentText());
+    return { ok: false, error: 'link_failed' };
+  }
+
+  var link = out.oobLink;
+  MailApp.sendEmail({
+    to: email,
+    subject: 'Ton lien de connexion : Christmas Party II',
+    name: 'Christmas Party II',
+    body: 'Bonjour,\n\n' +
+      'Voici ton lien pour te connecter à ton espace invité de la Christmas Party II :\n\n' +
+      link + '\n\n' +
+      "Ouvre-le sur le même téléphone que celui où tu as demandé le lien. " +
+      "Si tu n'as rien demandé, tu peux ignorer cet e-mail.\n\n" +
+      'À très vite !',
+    htmlBody: '<div style="font-family:Georgia,serif;color:#2b2320;line-height:1.6;max-width:480px">' +
+      '<p>Bonjour,</p>' +
+      '<p>Voici ton lien pour te connecter à ton espace invité de la Christmas Party II :</p>' +
+      '<p style="margin:28px 0"><a href="' + link + '" style="background:#5a1a22;color:#f5ead8;' +
+      'padding:12px 22px;text-decoration:none;letter-spacing:1px">Me connecter</a></p>' +
+      "<p style=\"font-size:14px;color:#6b5f5a\">Ouvre-le sur le même téléphone que celui où tu as demandé le lien. " +
+      "Si tu n'as rien demandé, tu peux ignorer cet e-mail.</p>" +
+      '<p>À très vite !</p></div>'
+  });
+  cache.put(cacheKey, '1', 60);
+  return { ok: true };
+}
+
+// Run by hand once from the editor to grant the new permissions and check
+// that Firebase accepts this account: it mails a sign-in link to yourself.
+function testerLienConnexion() {
+  var moi = Session.getEffectiveUser().getEmail().toLowerCase();
+  var res = UrlFetchApp.fetch(
+    'https://identitytoolkit.googleapis.com/v1/projects/' + FIREBASE_PROJECT_ID + '/accounts:sendOobCode', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'X-Goog-User-Project': FIREBASE_PROJECT_ID },
+      payload: JSON.stringify({ requestType: 'EMAIL_SIGNIN', email: moi, continueUrl: MEMBER_URL, canHandleCodeInApp: true, returnOobLink: true }),
+      muteHttpExceptions: true
+    });
+  Logger.log('Réponse Firebase : ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 300));
 }
 
 function getAccountSheet_() {

@@ -36,6 +36,7 @@
  */
 
 var SHEET_NAME = 'RSVP';
+var ACCOUNT_SHEET_NAME = 'Comptes'; // e-mails des espaces invités déjà créés
 var PAIR_SHEET_NAME = 'PairEmails'; // table cachée : jamais exposée à un invité
 // The real key is stored in the Apps Script project properties (Project
 // settings > Script properties > ADMIN_KEY), never in this file: pasting a new
@@ -81,6 +82,14 @@ function doPost(e) {
     // (protégé par ADMIN_KEY). Stocké uniquement dans une table cachée côté
     // serveur — jamais renvoyé ni lisible par un invité, pour que le nom et
     // l'email de l'autre personne ne transitent jamais vers le mauvais camp.
+    // Liste des e-mails des espaces invités, envoyée par la page admin.
+    // Elle permet à un invité qui a déjà un compte de se reconnecter même si
+    // sa confirmation dans la feuille n'a pas d'e-mail.
+    if (data.action === 'syncAccounts') {
+      if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
+      return jsonOut_(syncAccounts_(data.emails));
+    }
+
     if (data.action === 'registerPairEmails') {
       if (data.key !== ADMIN_KEY) return jsonOut_({ ok: false, error: 'unauthorized' });
       return jsonOut_(registerPairEmails_(data.pairs));
@@ -149,6 +158,13 @@ function isEmailRegistered_(email) {
   var values = getSheet_().getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][5] || '').trim().toLowerCase() === email) return true;
+  }
+  var accounts = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ACCOUNT_SHEET_NAME);
+  if (accounts) {
+    var list = accounts.getDataRange().getValues();
+    for (var j = 1; j < list.length; j++) {
+      if (String(list[j][0] || '').trim().toLowerCase() === email) return true;
+    }
   }
   return false;
 }
@@ -289,6 +305,33 @@ function sendUpdate_(subject, body, recipients) {
   });
 
   return { ok: true, sent: sent.length, failed: failed };
+}
+
+function getAccountSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(ACCOUNT_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(ACCOUNT_SHEET_NAME);
+    sheet.appendRow(['Email']);
+    sheet.setFrozenRows(1);
+    sheet.hideSheet();
+  }
+  return sheet;
+}
+
+// Remplace la liste par celle envoyée par l'admin (comptes Firebase actuels).
+function syncAccounts_(emails) {
+  if (!Array.isArray(emails)) return { ok: false, error: 'bad_emails' };
+  var seen = {};
+  var rows = [];
+  emails.forEach(function (e) {
+    e = String(e || '').trim().toLowerCase();
+    if (e && e.indexOf('@') !== -1 && !seen[e]) { seen[e] = true; rows.push([e]); }
+  });
+  var sheet = getAccountSheet_();
+  if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).clearContent();
+  if (rows.length) sheet.getRange(2, 1, rows.length, 1).setValues(rows);
+  return { ok: true, saved: rows.length };
 }
 
 function getPairSheet_() {

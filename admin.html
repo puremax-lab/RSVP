@@ -965,9 +965,23 @@
       });
       guestsCache = list;
       renderSantaTable();
+      syncAccounts(list);
     }).catch(function(err){
       setNote(santaDrawNote, 'Erreur de chargement : ' + (err.message || err), 'bad');
     });
+  }
+
+  // Sends the e-mails of existing guest accounts to the backend, so a guest
+  // whose RSVP row has no e-mail can still get a sign-in link.
+  function syncAccounts(list){
+    var key = getAdminKey();
+    if(!key || !window.APPS_SCRIPT_URL) return;
+    var emails = list.map(function(g){ return g.email; }).filter(function(e){ return e && e !== '-'; });
+    if(!emails.length) return;
+    fetch(window.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'syncAccounts', key: key, emails: emails })
+    }).catch(function(){});
   }
 
   function nameByUid(uid){
